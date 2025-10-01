@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tab, Candidate, JobRequisition, JobStatus } from './types';
+import { Tab, Candidate, JobRequisition, JobStatus, PipelineStage } from './types';
 
 // SVG Icons as React Components
 const ZapIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></svg>;
@@ -14,6 +14,7 @@ const MicIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns=
 const GridIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></svg>;
 const ProfileIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5.52 19c.64-2.2 1.84-3 3.22-3h6.52c1.38 0 2.58.8 3.22 3"/><circle cx="12" cy="10" r="3"/><circle cx="12" cy="12" r="10"/></svg>;
 const BriefcaseIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>;
+const LayoutGridIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect></svg>;
 
 
 // FIX: Changed icon type from JSX.Element to React.ReactElement to resolve "Cannot find namespace 'JSX'" error.
@@ -22,6 +23,7 @@ export const TABS: { id: Tab; name: string; icon: React.ReactElement, descriptio
   { id: Tab.InsightJudgment, name: 'Insight & Judgment', icon: <LightbulbIcon className="h-5 w-5" />, description: "Amplify your advisory skills with AI-powered insights and predictions."},
   { id: Tab.JobRequisitions, name: 'Job Requisitions', icon: <BriefcaseIcon className="h-5 w-5" />, description: "Manage and track job statuses with AI-driven suggestions."},
   { id: Tab.CandidateProfiles, name: 'Candidate Profiles', icon: <ProfileIcon className="h-5 w-5" />, description: "View, add, and manage detailed candidate profiles." },
+  { id: Tab.CandidatePipeline, name: 'Candidate Pipeline', icon: <LayoutGridIcon className="h-5 w-5" />, description: "Visualize and manage your hiring workflow with a drag-and-drop Kanban board." },
   { id: Tab.CandidateExperience, name: 'Candidate Experience', icon: <SmileIcon className="h-5 w-5" />, description: "Fix broken processes and deliver a personalized candidate journey."},
   { id: Tab.PerformanceCreativity, name: 'Performance & Creativity', icon: <BarChartIcon className="h-5 w-5" />, description: "Track your performance and get creative sourcing ideas from AI."},
   { id: Tab.AdoptionCommunity, name: 'Adoption & Community', icon: <UsersIcon className="h-5 w-5" />, description: "Learn AI skills and collaborate with peers by sharing prompts."},
@@ -84,3 +86,26 @@ Requirements:
 - He should have at least 10 years of React experience.
 - A competitive, work-hard-play-hard attitude is a must.
 `;
+
+export const PIPELINE_STAGES = [
+    PipelineStage.Applied,
+    PipelineStage.PhoneScreen,
+    PipelineStage.TechnicalInterview,
+    PipelineStage.FinalInterview,
+    PipelineStage.Offer,
+    PipelineStage.Hired,
+];
+
+export const MOCK_PIPELINE_DATA: { [jobId: number]: { [stage in PipelineStage]?: number[] } } = {
+    101: { // Senior Frontend Engineer
+        [PipelineStage.Applied]: [4],
+        [PipelineStage.PhoneScreen]: [2],
+        [PipelineStage.TechnicalInterview]: [1],
+    },
+    102: { // Product Manager
+        [PipelineStage.Applied]: [3],
+    },
+    105: { // Data Scientist
+        // No candidates yet
+    }
+};

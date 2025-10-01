@@ -3,6 +3,7 @@ export enum Tab {
   InsightJudgment = 'INSIGHT_JUDGMENT',
   JobRequisitions = 'JOB_REQUISITIONS',
   CandidateProfiles = 'CANDIDATE_PROFILES',
+  CandidatePipeline = 'CANDIDATE_PIPELINE',
   CandidateExperience = 'CANDIDATE_EXPERIENCE',
   PerformanceCreativity = 'PERFORMANCE_CREATIVITY',
   AdoptionCommunity = 'ADOPTION_COMMUNITY',
@@ -68,4 +69,13 @@ export enum InterviewStage {
     TechnicalInterview = '60-Minute Technical Interview',
     HiringManager = '45-Minute Hiring Manager Interview',
     FinalRound = '2-Hour Final Round Panel',
+}
+
+export enum PipelineStage {
+    Applied = 'Applied',
+    PhoneScreen = 'Phone Screen',
+    TechnicalInterview = 'Technical Interview',
+    FinalInterview = 'Final Interview',
+    Offer = 'Offer',
+    Hired = 'Hired',
 }
