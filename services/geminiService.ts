@@ -269,7 +269,8 @@ export const parseAvailability = async (text: string, timezone: string): Promise
     `;
     
     try {
-        const response = await ai.models.generateContent({
+        // FIX: Explicitly typing the response variable ensures that the return value of the function is correctly inferred, preventing downstream type errors.
+        const response: GenerateContentResponse = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
             config: {
@@ -288,14 +289,18 @@ export const parseAvailability = async (text: string, timezone: string): Promise
             },
         });
         const jsonText = response.text.trim();
-        return JSON.parse(jsonText) as {startTime: string, endTime: string}[];
+        const parsedResult = JSON.parse(jsonText);
+        // FIX: Cast the parsed result to the expected return type.
+        return parsedResult as {startTime: string, endTime: string}[];
     } catch (error) {
         console.error("Error parsing availability:", error);
         throw new Error("Failed to parse availability. Please try being more specific with dates and times.");
     }
 };
 
-export const generateSchedulingEmail = async (candidateName: string, jobTitle: string, interviewStage: InterviewStage, timeSlots: string[]): Promise<string> => {
+export const generateSchedulingEmail = async (candidateName: string, jobTitle: string, interviewStage: InterviewStage, timeSlots: string[], interviewers: string[], videoLink: string): Promise<string> => {
+    const isPanelInterview = interviewers.length > 1;
+    
     const prompt = `
         You are a friendly and efficient recruiting coordinator. Your task is to write an email to a candidate to schedule their interview.
 
@@ -303,21 +308,29 @@ export const generateSchedulingEmail = async (candidateName: string, jobTitle: s
         - Candidate Name: ${candidateName}
         - Job Title: ${jobTitle}
         - Interview Stage: ${interviewStage}
+        ${interviewers.length > 0 ? `- Interviewers: ${interviewers.join(', ')}` : ''}
+        ${videoLink ? `- Video Conference Link: ${videoLink}` : ''}
         - Proposed Time Slots:\n${timeSlots.join('\n')}
 
         Instructions:
         1. Write a warm and professional email.
         2. Address the candidate by their first name.
         3. State the purpose of the email: to schedule the ${interviewStage}.
-        4. Present the proposed time slots clearly in a list.
-        5. Ask the candidate to reply with their preferred time.
-        6. Mention that a formal calendar invitation with a video conference link will be sent after they confirm a time.
-        7. Keep the tone enthusiastic and organized.
-        8. The output should be only the email body text.
+        ${interviewers.length > 0 ? `4. Mention that they will be meeting with ${interviewers.join(' and ')}.` : ''}
+        5. Present the proposed time slots clearly in a list.
+        ${isPanelInterview
+            ? '6. Ask the candidate to reply with their preferred time, noting that it needs to work for all interviewers.'
+            : '6. Ask the candidate to reply with their preferred time.'}
+        ${videoLink
+            ? '7. Inform them that the video call link is included in this email and they should use it to join at the scheduled time.'
+            : '7. Mention that a formal calendar invitation with a video conference link will be sent after they confirm a time.'}
+        8. Keep the tone enthusiastic and organized.
+        9. The output should be only the email body text.
     `;
 
     try {
-        const response = await ai.models.generateContent({
+        // FIX: Explicitly typing the response variable for type safety and consistency.
+        const response: GenerateContentResponse = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
         });

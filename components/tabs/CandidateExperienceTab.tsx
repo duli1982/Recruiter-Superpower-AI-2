@@ -6,9 +6,9 @@ import { parseAvailability, generateSchedulingEmail } from '../../services/gemin
 import { Candidate, InterviewStage } from '../../types';
 import { MOCK_CANDIDATES } from '../../constants';
 
-const CalendarIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>;
-const ClipboardIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>;
-const CheckIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>;
+const CalendarIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>;
+const ClipboardIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>;
+const CheckIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>;
 
 
 type TimeSlot = { startTime: string; endTime: string };
@@ -19,6 +19,8 @@ export const CandidateExperienceTab: React.FC = () => {
     const [candidates, setCandidates] = useState<Candidate[]>([]);
     const [selectedCandidateId, setSelectedCandidateId] = useState<string>('');
     const [interviewStage, setInterviewStage] = useState<InterviewStage>(InterviewStage.PhoneScreen);
+    const [interviewers, setInterviewers] = useState('');
+    const [videoLink, setVideoLink] = useState('');
     const [availabilityText, setAvailabilityText] = useState('Tomorrow from 2pm to 4:30pm, and Friday morning from 10am to 11am.');
     
     const [isParsing, setIsParsing] = useState(false);
@@ -81,6 +83,7 @@ export const CandidateExperienceTab: React.FC = () => {
         setGenerationError('');
         setGeneratedEmail('');
         try {
+            // FIX: Explicitly type the `slot` parameter as string to resolve type error.
             const formattedSlots = Array.from(selectedSlots).map((slot: string) => {
                 return new Date(slot).toLocaleString(undefined, {
                     weekday: 'long',
@@ -91,7 +94,8 @@ export const CandidateExperienceTab: React.FC = () => {
                     timeZoneName: 'short',
                 });
             });
-            const email = await generateSchedulingEmail(selectedCandidate.name, 'Senior Product Manager', interviewStage, formattedSlots);
+            const interviewerList = interviewers.split(',').map(name => name.trim()).filter(Boolean);
+            const email = await generateSchedulingEmail(selectedCandidate.name, 'Senior Product Manager', interviewStage, formattedSlots, interviewerList, videoLink);
             setGeneratedEmail(email);
         } catch (error) {
             setGenerationError(error instanceof Error ? error.message : "An unknown error occurred.");
@@ -149,14 +153,36 @@ export const CandidateExperienceTab: React.FC = () => {
                             <div>
                                 <label htmlFor="interviewStage" className="block text-sm font-medium text-gray-300">Interview Stage</label>
                                 <select id="interviewStage" value={interviewStage} onChange={e => setInterviewStage(e.target.value as InterviewStage)} className="mt-1 input-field">
-                                    {/* FIX: Cast Object.values to an array of the enum type to allow mapping. */}
-                                    {(Object.values(InterviewStage) as InterviewStage[]).map(s => <option key={s} value={s}>{s}</option>)}
+                                    {/* FIX: Cast Object.values to string[] to resolve map property not existing on type 'unknown'. */}
+                                    {(Object.values(InterviewStage) as string[]).map(s => <option key={s} value={s}>{s}</option>)}
                                 </select>
                             </div>
                         </div>
                         <div>
+                            <label htmlFor="interviewers" className="block text-sm font-medium text-gray-300">Interviewers (comma-separated)</label>
+                            <input
+                                id="interviewers"
+                                type="text"
+                                value={interviewers}
+                                onChange={(e) => setInterviewers(e.target.value)}
+                                className="mt-1 input-field"
+                                placeholder="e.g., Jane Doe, John Smith"
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="videoLink" className="block text-sm font-medium text-gray-300">Video Conference Link</label>
+                            <input
+                                id="videoLink"
+                                type="text"
+                                value={videoLink}
+                                onChange={(e) => setVideoLink(e.target.value)}
+                                className="mt-1 input-field"
+                                placeholder="e.g., https://meet.google.com/xyz-abc-def"
+                            />
+                        </div>
+                        <div>
                             <label htmlFor="availabilityText" className="block text-sm font-medium text-gray-300">Enter your availability</label>
-                            <textarea id="availabilityText" rows={4} value={availabilityText} onChange={e => setAvailabilityText(e.target.value)} className="mt-1 input-field" placeholder="e.g., Tomorrow afternoon, next Monday 10am-12pm"></textarea>
+                            <textarea id="availabilityText" rows={3} value={availabilityText} onChange={e => setAvailabilityText(e.target.value)} className="mt-1 input-field" placeholder="e.g., Tomorrow afternoon, next Monday 10am-12pm"></textarea>
                         </div>
                         <Button onClick={handleParse} isLoading={isParsing} disabled={!availabilityText} className="w-full">
                             Find Available Times
