@@ -56,3 +56,16 @@ export interface JobRequisition {
     description: string;
     applications: number; // For visualization mock
 }
+
+export enum EmailTemplateType {
+    Rejection = 'Rejection',
+    InterviewInvite = 'Interview Invitation',
+    FollowUp = 'General Follow-up',
+}
+
+export enum InterviewStage {
+    PhoneScreen = '30-Minute Phone Screen',
+    TechnicalInterview = '60-Minute Technical Interview',
+    HiringManager = '45-Minute Hiring Manager Interview',
+    FinalRound = '2-Hour Final Round Panel',
+}

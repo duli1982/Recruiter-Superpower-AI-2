@@ -8,6 +8,7 @@ import { DiversityEthicsTab } from './components/tabs/DiversityEthicsTab';
 import { PlaceholderTab } from './components/tabs/PlaceholderTab';
 import { CandidateProfilesTab } from './components/tabs/CandidateProfilesTab';
 import { JobRequisitionsTab } from './components/tabs/JobRequisitionsTab';
+import { CandidateExperienceTab } from './components/tabs/CandidateExperienceTab';
 import { TABS } from './constants';
 
 const App: React.FC = () => {
@@ -25,6 +26,8 @@ const App: React.FC = () => {
         return <CandidateProfilesTab />;
       case Tab.JobRequisitions:
         return <JobRequisitionsTab />;
+      case Tab.CandidateExperience:
+        return <CandidateExperienceTab />;
       default:
         const tabInfo = TABS.find(t => t.id === activeTab);
         return <PlaceholderTab title={tabInfo?.name || 'Coming Soon'} description={tabInfo?.description || 'This feature is under development.'} icon={tabInfo?.icon} />;
