@@ -12,6 +12,7 @@ import { CandidateExperienceTab } from './components/tabs/CandidateExperienceTab
 import { CandidatePipelineTab } from './components/tabs/CandidatePipelineTab';
 import { TABS } from './constants';
 import { IntegrationUpskillingTab } from './components/tabs/IntegrationUpskillingTab';
+import { ProactiveSourcingTab } from './components/tabs/ProactiveSourcingTab';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>(Tab.AdminElimination);
@@ -34,6 +35,8 @@ const App: React.FC = () => {
         return <CandidateExperienceTab />;
       case Tab.IntegrationUpskilling:
         return <IntegrationUpskillingTab />;
+      case Tab.ProactiveSourcing:
+        return <ProactiveSourcingTab />;
       default:
         const tabInfo = TABS.find(t => t.id === activeTab);
         return <PlaceholderTab title={tabInfo?.name || 'Coming Soon'} description={tabInfo?.description || 'This feature is under development.'} icon={tabInfo?.icon} />;

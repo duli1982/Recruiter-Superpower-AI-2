@@ -79,3 +79,13 @@ export enum PipelineStage {
     Offer = 'Offer',
     Hired = 'Hired',
 }
+
+export interface ScoutedCandidate {
+  id: string;
+  name: string;
+  currentRole: string;
+  currentCompany: string;
+  matchScore: number;
+  intentSignal: string;
+  engagementSuggestion: string;
+}

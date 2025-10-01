@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type, GenerateContentResponse } from '@google/genai';
-import { Candidate, RankedCandidate, BiasAuditReport, JobRequisition, JobStatus, EmailTemplateType, InterviewStage } from '../types';
+import { Candidate, RankedCandidate, BiasAuditReport, JobRequisition, JobStatus, EmailTemplateType, InterviewStage, ScoutedCandidate } from '../types';
 
 if (!process.env.API_KEY) {
     console.warn("API_KEY environment variable not set. AI features will not work.");
@@ -338,5 +338,62 @@ export const generateSchedulingEmail = async (candidateName: string, jobTitle: s
     } catch (error) {
         console.error("Error generating scheduling email:", error);
         return "Sorry, I encountered an error while generating the email.";
+    }
+};
+
+export const scoutForTalent = async (jobTitle: string, skills: string, location: string, experience: string): Promise<ScoutedCandidate[]> => {
+    const prompt = `
+        You are an expert talent sourcer with a unique ability to identify passive candidates who are likely to be open to new opportunities. 
+        Based on the following criteria, generate a list of 3 fictional but realistic-sounding candidates.
+
+        Search Criteria:
+        - Job Title / Role: ${jobTitle}
+        - Key Skills: ${skills}
+        - Location: ${location}
+        - Experience Level: ${experience}
+
+        For each candidate, provide the following information:
+        - A plausible reason (the "intent signal") why they might be open to a new role, even if they aren't actively applying. This should be creative, e.g., their company just had layoffs, they recently got a new certification, their role anniversary just passed, they are very active on technical forums, etc.
+        - A personalized engagement suggestion for an initial outreach message.
+
+        Return a JSON array of objects. Each object must have the following structure:
+        - id: A unique string identifier for the candidate (e.g., a simple uuid-like string).
+        - name: The candidate's full name.
+        - currentRole: Their current job title.
+        - currentCompany: Their current employer.
+        - matchScore: A score from 80-98 representing their fit for the role.
+        - intentSignal: The creative reason they might be open to a new role.
+        - engagementSuggestion: A short (2-3 sentences) personalized outreach message.
+    `;
+
+    try {
+        const response: GenerateContentResponse = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            id: { type: Type.STRING },
+                            name: { type: Type.STRING },
+                            currentRole: { type: Type.STRING },
+                            currentCompany: { type: Type.STRING },
+                            matchScore: { type: Type.NUMBER },
+                            intentSignal: { type: Type.STRING },
+                            engagementSuggestion: { type: Type.STRING },
+                        },
+                        required: ["id", "name", "currentRole", "currentCompany", "matchScore", "intentSignal", "engagementSuggestion"],
+                    },
+                },
+            },
+        });
+        const jsonText = response.text.trim();
+        return JSON.parse(jsonText) as ScoutedCandidate[];
+    } catch (error) {
+        console.error("Error scouting for talent:", error);
+        throw new Error("Failed to scout for talent. The AI model might have returned an invalid format or encountered an error.");
     }
 };

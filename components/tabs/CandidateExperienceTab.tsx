@@ -153,8 +153,8 @@ export const CandidateExperienceTab: React.FC = () => {
                             <div>
                                 <label htmlFor="interviewStage" className="block text-sm font-medium text-gray-300">Interview Stage</label>
                                 <select id="interviewStage" value={interviewStage} onChange={e => setInterviewStage(e.target.value as InterviewStage)} className="mt-1 input-field">
-                                    {/* FIX: Removed the ineffective cast. Object.values on a string enum correctly returns a string array, allowing .map to be called directly. */}
-                                    {Object.values(InterviewStage).map(s => <option key={s} value={s}>{s}</option>)}
+                                    {/* FIX: Cast Object.values to an array to allow iteration, as type inference was failing. */}
+                                    {(Object.values(InterviewStage) as InterviewStage[]).map(s => <option key={s} value={s}>{s}</option>)}
                                 </select>
                             </div>
                         </div>
