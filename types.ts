@@ -14,6 +14,14 @@ export enum Tab {
   IntegrationUpskilling = 'INTEGRATION_UPSKILLING',
 }
 
+export enum TagType {
+    Internal = 'Internal',
+    Passive = 'Passive',
+    Referral = 'Referral',
+    HighPriority = 'High Priority',
+    DoNotContact = 'Do Not Contact',
+}
+
 export interface Candidate {
   id: number;
   name: string;
@@ -21,6 +29,12 @@ export interface Candidate {
   phone: string;
   skills: string; // Comma-separated for simplicity
   resumeSummary: string;
+  // New fields for advanced filtering
+  experience?: number; // in years
+  location?: string;
+  salaryExpectation?: number;
+  availability?: string; // e.g., 'Immediate', '2 Weeks Notice'
+  tags?: string[];
 }
 
 export interface RankedCandidate {
