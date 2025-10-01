@@ -153,8 +153,8 @@ export const CandidateExperienceTab: React.FC = () => {
                             <div>
                                 <label htmlFor="interviewStage" className="block text-sm font-medium text-gray-300">Interview Stage</label>
                                 <select id="interviewStage" value={interviewStage} onChange={e => setInterviewStage(e.target.value as InterviewStage)} className="mt-1 input-field">
-                                    {/* FIX: Cast Object.values to string[] to resolve map property not existing on type 'unknown'. */}
-                                    {(Object.values(InterviewStage) as string[]).map(s => <option key={s} value={s}>{s}</option>)}
+                                    {/* FIX: Removed the ineffective cast. Object.values on a string enum correctly returns a string array, allowing .map to be called directly. */}
+                                    {Object.values(InterviewStage).map(s => <option key={s} value={s}>{s}</option>)}
                                 </select>
                             </div>
                         </div>
