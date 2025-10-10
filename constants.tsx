@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tab, Candidate, JobRequisition, JobStatus, PipelineStage, TagType } from './types';
+import { Tab, Candidate, JobRequisition, JobStatus, PipelineStage, TagType, CommunityPrompt } from './types';
 
 // SVG Icons as React Components
 const ZapIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></svg>;
@@ -109,3 +109,50 @@ export const MOCK_PIPELINE_DATA: { [jobId: number]: { [stage in PipelineStage]?:
         // No candidates yet
     }
 };
+
+export const MOCK_COMMUNITY_PROMPTS: CommunityPrompt[] = [
+    {
+        id: 1,
+        title: "Find Senior Go Developers with K8s experience",
+        description: "A prompt for the AI Talent Scout to find experienced backend developers who are likely to be open to new roles.",
+        promptText: "Job Title: Senior Backend Engineer, Skills: Go, Kubernetes, AWS, PostgreSQL, Location: Remote, Experience: Senior (5-8 years)",
+        author: "Alex",
+        upvotes: 42,
+        usageCount: 112,
+        targetFeature: Tab.ProactiveSourcing,
+        tags: ["Sourcing", "Backend", "Go"]
+    },
+    {
+        id: 2,
+        title: "Empathetic Rejection Email for Strong Candidates",
+        description: "A template for the AI Email Composer that provides constructive feedback for a candidate who was a strong contender but not a perfect fit.",
+        promptText: "While their experience in X was impressive, we decided to move forward with candidates whose backgrounds in Y more closely align with the specific technical requirements of this role. Mention their great communication skills during the interview.",
+        author: "Jordan",
+        upvotes: 78,
+        usageCount: 254,
+        targetFeature: Tab.AdminElimination,
+        tags: ["Email", "Candidate Experience", "Rejection"]
+    },
+    {
+        id: 3,
+        title: "Audit Job Description for Gender-Neutral Language",
+        description: "Use this with the Bias Auditor to specifically check for and replace gendered language in a job description.",
+        promptText: "Analyze the following job description for gendered language (e.g., he/she, chairman, brotherhood) and suggest neutral alternatives.",
+        author: "Taylor",
+        upvotes: 55,
+        usageCount: 98,
+        targetFeature: Tab.DiversityEthics,
+        tags: ["DEI", "Job Description", "Bias"]
+    },
+    {
+        id: 4,
+        title: "Rank Frontend Candidates for a Design-Focused Role",
+        description: "A prompt for the Matchmaking Oracle that prioritizes UI/UX skills and experience with design systems.",
+        promptText: "We are looking for a Senior Frontend Engineer who is passionate about pixel-perfect UI and has proven experience building and maintaining design systems. Rank candidates based on their expertise in React, TypeScript, and their demonstrated eye for UI/UX.",
+        author: "Casey",
+        upvotes: 31,
+        usageCount: 76,
+        targetFeature: Tab.InsightJudgment,
+        tags: ["Ranking", "Frontend", "UI/UX"]
+    }
+];

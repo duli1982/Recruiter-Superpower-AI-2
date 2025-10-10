@@ -1,14 +1,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
-import { Candidate, TagType } from '../../types';
+import { Candidate, TagType, AIGroupAnalysisReport } from '../../types';
 import { MOCK_CANDIDATES } from '../../constants';
+import { analyzeCandidateGroup } from '../../services/geminiService';
+import { Spinner } from '../ui/Spinner';
 
 const PlusIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>;
 const EditIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>;
 const TrashIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>;
 const FilterIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" /></svg>;
 const BookmarkIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>;
+const SparklesIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 3L8 8l-5 2 5 2 2 5 2-5 5-2-5-2-2-5zM18 13l-1.5 3-3 1.5 3 1.5 1.5 3 1.5-3 3-1.5-3-1.5-1.5-3z"/></svg>;
+
 
 const STORAGE_KEY = 'recruiter-ai-candidates';
 const SAVED_SEARCHES_KEY = 'recruiter-ai-saved-searches';
@@ -46,6 +50,13 @@ export const CandidateProfilesTab: React.FC = () => {
     const [filters, setFilters] = useState<Filters>(BLANK_FILTERS);
     const [showFilters, setShowFilters] = useState(false);
     const [savedSearches, setSavedSearches] = useState<SavedSearch[]>(() => getInitialData(SAVED_SEARCHES_KEY, []));
+
+    // State for multi-select and AI summary
+    const [multiSelectIds, setMultiSelectIds] = useState<Set<number>>(new Set());
+    const [targetJobTitle, setTargetJobTitle] = useState('Senior Frontend Engineer');
+    const [summaryReport, setSummaryReport] = useState<AIGroupAnalysisReport | null>(null);
+    const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
+    const [summaryError, setSummaryError] = useState('');
 
     useEffect(() => {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(candidates));
@@ -163,7 +174,38 @@ export const CandidateProfilesTab: React.FC = () => {
         setSavedSearches(prev => prev.filter(s => s.name !== name));
     };
 
-// FIX: Defined a `TagPillProps` interface and used `React.FC` to correctly type the `TagPill` component's props, resolving an issue where React's `key` prop caused a type mismatch.
+    const handleMultiSelectToggle = (candidateId: number) => {
+        setMultiSelectIds(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(candidateId)) {
+                newSet.delete(candidateId);
+            } else {
+                newSet.add(candidateId);
+            }
+            return newSet;
+        });
+    };
+
+    const handleGenerateSummary = async () => {
+        if (multiSelectIds.size === 0) return;
+        
+        const selectedForSummary = candidates.filter(c => multiSelectIds.has(c.id));
+        
+        setIsGeneratingSummary(true);
+        setSummaryError('');
+        setSummaryReport(null);
+        
+        try {
+            const report = await analyzeCandidateGroup(selectedForSummary, targetJobTitle);
+            setSummaryReport(report);
+        } catch (error) {
+            setSummaryError(error instanceof Error ? error.message : "An unknown error occurred.");
+            alert(summaryError); // Simple error feedback
+        } finally {
+            setIsGeneratingSummary(false);
+        }
+    };
+
     interface TagPillProps {
         tag: string;
     }
@@ -178,6 +220,12 @@ export const CandidateProfilesTab: React.FC = () => {
         };
         const colorClass = colors[tag] || 'bg-gray-700 text-gray-300';
         return <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${colorClass}`}>{tag}</span>
+    };
+
+    const getScoreColor = (score: number) => {
+        if (score >= 85) return 'text-green-400';
+        if (score >= 70) return 'text-yellow-400';
+        return 'text-red-400';
     };
 
     return (
@@ -239,14 +287,34 @@ export const CandidateProfilesTab: React.FC = () => {
                     </div>
                     <ul className="overflow-y-auto space-y-2 flex-grow">
                         {filteredCandidates.map(candidate => (
-                            <li key={candidate.id}>
-                                <button
-                                    onClick={() => handleSelectCandidate(candidate)}
-                                    className={`w-full text-left p-3 rounded-md transition-colors ${selectedCandidateId === candidate.id ? 'bg-indigo-600 text-white' : 'bg-gray-800 hover:bg-gray-700'}`}
+                             <li key={candidate.id}>
+                                <div
+                                    className={`w-full text-left p-3 rounded-md transition-colors flex items-center gap-3 ${
+                                        selectedCandidateId === candidate.id ? 'bg-indigo-600 text-white' : 'bg-gray-800 hover:bg-gray-700/50'
+                                    }`}
                                 >
-                                    <p className="font-semibold truncate">{candidate.name}</p>
-                                    <p className={`text-sm truncate ${selectedCandidateId === candidate.id ? 'text-indigo-200' : 'text-gray-400'}`}>{candidate.skills}</p>
-                                </button>
+                                    <input
+                                        type="checkbox"
+                                        checked={multiSelectIds.has(candidate.id)}
+                                        onChange={() => handleMultiSelectToggle(candidate.id)}
+                                        className="form-checkbox h-4 w-4 bg-gray-700 border-gray-600 rounded text-indigo-600 focus:ring-indigo-500 flex-shrink-0 cursor-pointer"
+                                    />
+                                    <div
+                                        className="flex-grow cursor-pointer"
+                                        onClick={() => handleSelectCandidate(candidate)}
+                                    >
+                                        <p className="font-semibold truncate">{candidate.name}</p>
+                                        <p
+                                            className={`text-sm truncate ${
+                                                selectedCandidateId === candidate.id
+                                                    ? 'text-indigo-200'
+                                                    : 'text-gray-400'
+                                            }`}
+                                        >
+                                            {candidate.skills}
+                                        </p>
+                                    </div>
+                                </div>
                             </li>
                         ))}
                     </ul>
@@ -325,12 +393,102 @@ export const CandidateProfilesTab: React.FC = () => {
                     ) : null}
                 </Card>
             </div>
+            {multiSelectIds.size > 0 && (
+                <div className="fixed bottom-6 left-1/2 w-full max-w-2xl z-20 animate-fade-in-up">
+                    <div className="bg-gray-950 border border-indigo-500/50 rounded-lg shadow-2xl p-4 flex items-center gap-4 mx-4">
+                        <span className="font-semibold text-white">{multiSelectIds.size} candidates selected</span>
+                        <input type="text" value={targetJobTitle} onChange={e => setTargetJobTitle(e.target.value)} placeholder="Target job title..." className="input-field-sm flex-grow" />
+                        <Button onClick={handleGenerateSummary} isLoading={isGeneratingSummary} icon={<SparklesIcon className="h-4 w-4" />}>Generate Summary</Button>
+                        <Button variant="secondary" onClick={() => setMultiSelectIds(new Set())}>Clear</Button>
+                    </div>
+                </div>
+            )}
+            {summaryReport && (
+                <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => setSummaryReport(null)}>
+                    <Card className="w-full max-w-3xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                        <CardHeader title="AI Candidate Group Analysis" description={`Analysis for the role: ${targetJobTitle}`} icon={<SparklesIcon className="h-6 w-6"/>} />
+                        <div className="overflow-y-auto pr-2 -mr-4 mt-2 space-y-6">
+                             {/* Group Summary Section */}
+                            <div>
+                                <h3 className="text-lg font-semibold text-indigo-300 mb-2 border-b border-gray-700 pb-2">Group Summary</h3>
+                                <div className="space-y-4 mt-2">
+                                    <div>
+                                        <h4 className="font-semibold text-gray-200 mb-2">Combined Summary</h4>
+                                        <p className="text-gray-300">{summaryReport.combinedSummary}</p>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <h4 className="font-semibold text-green-400 mb-2">Collective Strengths</h4>
+                                            <ul className="list-disc list-inside space-y-1 text-gray-300">
+                                                {summaryReport.collectiveStrengths.map((s, i) => <li key={i}>{s}</li>)}
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <h4 className="font-semibold text-yellow-400 mb-2">Potential Gaps</h4>
+                                            <ul className="list-disc list-inside space-y-1 text-gray-300">
+                                                {summaryReport.potentialGaps.map((g, i) => <li key={i}>{g}</li>)}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h4 className="font-semibold text-purple-400 mb-2">Suggested Alternative Roles</h4>
+                                        <div className="flex flex-wrap gap-2">
+                                            {summaryReport.suggestedRoles.map((r, i) => (
+                                                <span key={i} className="bg-purple-500/20 text-purple-300 text-sm font-medium px-2.5 py-1 rounded-full">{r}</span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {/* Individual Rankings Section */}
+                            <div>
+                                <h3 className="text-lg font-semibold text-indigo-300 mb-2 border-b border-gray-700 pb-2">Individual Rankings</h3>
+                                <div className="space-y-4 mt-2">
+                                    {summaryReport.individualAnalysis.map(candidate => (
+                                         <div key={candidate.id} className="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <p className="font-bold text-white">{candidate.name}</p>
+                                                    <p className="text-sm text-gray-400 mt-1">{candidate.reasoning}</p>
+                                                </div>
+                                                <div className="text-right ml-4 flex-shrink-0">
+                                                    <p className={`text-2xl font-bold ${getScoreColor(candidate.matchScore)}`}>{candidate.matchScore}</p>
+                                                    <p className="text-xs text-gray-400">Match</p>
+                                                </div>
+                                            </div>
+                                            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                                <div>
+                                                    <h5 className="font-semibold text-green-400 mb-2">Strengths</h5>
+                                                    <ul className="list-disc list-inside space-y-1 text-gray-300">
+                                                        {candidate.strengths.map((s, i) => <li key={i}>{s}</li>)}
+                                                    </ul>
+                                                </div>
+                                                <div>
+                                                    <h5 className="font-semibold text-yellow-400 mb-2">Weaknesses</h5>
+                                                    <ul className="list-disc list-inside space-y-1 text-gray-300">
+                                                        {candidate.weaknesses.map((w, i) => <li key={i}>{w}</li>)}
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="mt-6 pt-4 border-t border-gray-700 flex justify-end">
+                            <Button onClick={() => setSummaryReport(null)}>Close</Button>
+                        </div>
+                    </Card>
+                </div>
+            )}
             <style>{`
                 .label { display: block; text-transform: uppercase; font-size: 0.75rem; font-medium; color: #9ca3af; margin-bottom: 0.25rem;}
                 .input-field, .input-field-sm { display: block; width: 100%; background-color: #1f2937; border: 1px solid #4b5563; border-radius: 0.375rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); color: white; }
                 .input-field { padding: 0.5rem 0.75rem; }
                 .input-field-sm { padding: 0.375rem 0.625rem; font-size: 0.875rem; }
                 .input-field:focus, .input-field-sm:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 1px #6366f1; }
+                .form-checkbox { appearance: none; -webkit-appearance: none; background-color: #374151; border: 1px solid #4b5563; border-radius: 0.25rem; } .form-checkbox:checked { background-color: #4f46e5; border-color: #4f46e5; background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e"); background-size: 100% 100%; background-position: center; background-repeat: no-repeat; }
+                @keyframes fade-in-up { from { opacity: 0; transform: translateY(20px) translateX(-50%); } to { opacity: 1; transform: translateY(0) translateX(-50%); } } .animate-fade-in-up { animation: fade-in-up 0.3s ease-out forwards; }
                 /* Custom scrollbar for candidate list */
                 .overflow-y-auto::-webkit-scrollbar { width: 6px; }
                 .overflow-y-auto::-webkit-scrollbar-track { background: transparent; }

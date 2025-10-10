@@ -92,7 +92,7 @@ export const JobRequisitionsTab: React.FC = () => {
 
     return (
         <div>
-            <h2 className="text-2xl font-bold text-white mb-6">Job Requisitions</h2>
+            <h2 className="text-2xl font-bold text-white mb-6">Manage Requisitions</h2>
 
             {(aiSuggestion || isLoadingSuggestion) && (
                 <Card className="mb-6 bg-indigo-900/50 border-indigo-700">
@@ -109,20 +109,21 @@ export const JobRequisitionsTab: React.FC = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <Card className="lg:col-span-2">
-                    <CardHeader title="Manage Requisitions" />
                     <div className="flex flex-wrap gap-4 items-center mb-4">
-                        <div className="flex-grow sm:flex-grow-0">
-                            <label htmlFor="statusFilter" className="text-xs text-gray-400">Status</label>
-                            <select id="statusFilter" onChange={e => setFilters(f => ({ ...f, status: e.target.value }))} className="input-field-sm mt-1">
-                                <option>All</option>
-                                {Object.values(JobStatus).map(s => <option key={s}>{s}</option>)}
-                            </select>
-                        </div>
-                        <div className="flex-grow sm:flex-grow-0">
-                            <label htmlFor="deptFilter" className="text-xs text-gray-400">Department</label>
-                            <select id="deptFilter" onChange={e => setFilters(f => ({ ...f, department: e.target.value }))} className="input-field-sm mt-1">
-                                {departments.map(d => <option key={d}>{d}</option>)}
-                            </select>
+                        <div className="flex">
+                            <div>
+                                <label htmlFor="statusFilter" className="text-xs text-gray-400">Status</label>
+                                <select id="statusFilter" onChange={e => setFilters(f => ({ ...f, status: e.target.value }))} className="input-field-sm mt-1 select-custom-arrow rounded-r-none">
+                                    <option>All</option>
+                                    {Object.values(JobStatus).map(s => <option key={s}>{s}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label htmlFor="deptFilter" className="text-xs text-gray-400">Department</label>
+                                <select id="deptFilter" onChange={e => setFilters(f => ({ ...f, department: e.target.value }))} className="input-field-sm mt-1 select-custom-arrow rounded-l-none -ml-px">
+                                    {departments.map(d => <option key={d}>{d}</option>)}
+                                </select>
+                            </div>
                         </div>
                         <div className="ml-auto">
                            <Button onClick={() => { setEditingReq(BLANK_REQUISITION); setIsModalOpen(true); }} icon={<PlusIcon />}>Create</Button>
@@ -148,7 +149,7 @@ export const JobRequisitionsTab: React.FC = () => {
                                             <div className="text-gray-400">{req.department}</div>
                                         </td>
                                         <td className="whitespace-nowrap px-3 py-4 text-sm">
-                                            <select value={req.status} onChange={e => handleStatusChange(req.id, e.target.value as JobStatus)} className="input-field-sm bg-gray-900 border-gray-600">
+                                            <select value={req.status} onChange={e => handleStatusChange(req.id, e.target.value as JobStatus)} className="input-field-sm bg-gray-900 border-gray-600 select-custom-arrow">
                                                 {Object.values(JobStatus).map(s => <option key={s} value={s}>{s}</option>)}
                                             </select>
                                         </td>
@@ -215,6 +216,16 @@ export const JobRequisitionsTab: React.FC = () => {
                 .input-field { display: block; width: 100%; background-color: #1f2937; border: 1px solid #4b5563; border-radius: 0.375rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); color: white; padding: 0.5rem 0.75rem; }
                 .input-field:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 1px #6366f1; }
                 .input-field-sm { display: block; width: 100%; background-color: #1f2937; border: 1px solid #4b5563; border-radius: 0.375rem; color: white; padding: 0.25rem 0.5rem; font-size: 0.875rem; }
+                .select-custom-arrow {
+                    -webkit-appearance: none;
+                    -moz-appearance: none;
+                    appearance: none;
+                    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+                    background-position: right 0.5rem center;
+                    background-repeat: no-repeat;
+                    background-size: 1.5em 1.5em;
+                    padding-right: 2.5rem;
+                }
             `}</style>
         </div>
     );

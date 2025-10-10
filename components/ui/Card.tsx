@@ -1,13 +1,14 @@
 import React from 'react';
 
-interface CardProps {
+// FIX: Extend CardProps with React.HTMLAttributes<HTMLDivElement> to allow passing standard div props like onClick.
+interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   className?: string;
 }
 
-export const Card: React.FC<CardProps> = ({ children, className = '' }) => {
+export const Card: React.FC<CardProps> = ({ children, className = '', ...props }) => {
   return (
-    <div className={`bg-gray-900 border border-gray-700 rounded-lg shadow-lg p-6 ${className}`}>
+    <div className={`bg-gray-900 border border-gray-700 rounded-lg shadow-lg p-6 ${className}`} {...props}>
       {children}
     </div>
   );

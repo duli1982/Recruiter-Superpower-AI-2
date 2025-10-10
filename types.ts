@@ -103,3 +103,59 @@ export interface ScoutedCandidate {
   intentSignal: string;
   engagementSuggestion: string;
 }
+
+export interface IndividualCandidateReport {
+  id: number;
+  name: string;
+  matchScore: number;
+  strengths: string[];
+  weaknesses: string[];
+  reasoning: string;
+}
+
+export interface AIGroupAnalysisReport {
+  combinedSummary: string;
+  collectiveStrengths: string[];
+  potentialGaps: string[];
+  suggestedRoles: string[];
+  individualAnalysis: IndividualCandidateReport[];
+}
+
+export interface CommunityPrompt {
+  id: number;
+  title: string;
+  description: string;
+  promptText: string;
+  author: string;
+  upvotes: number;
+  usageCount: number;
+  targetFeature: Tab; // Link the prompt to a specific feature/tab
+  tags: string[];
+}
+
+// New types for Predictive Analytics
+export interface HiringForecast {
+  roleTitle: string;
+  department: string;
+  demandScore: number; // e.g., 0-100
+  reasoning: string;
+}
+
+export interface SkillGap {
+  skill: string;
+  demandLevel: 'High' | 'Medium' | 'Low';
+  supplyLevel: 'High' | 'Medium' | 'Low' | 'Very Low';
+  severity: 'Critical' | 'Moderate' | 'Minor';
+}
+
+export interface MarketTrend {
+  insight: string;
+  impact: string;
+}
+
+export interface PredictiveAnalysisReport {
+  generatedAt: string; // ISO 8601 string
+  hiringForecasts: HiringForecast[];
+  skillGaps: SkillGap[];
+  marketTrends: MarketTrend[];
+}

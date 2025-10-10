@@ -8,11 +8,13 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 export const Button: React.FC<ButtonProps> = ({ children, isLoading = false, variant = 'primary', icon, ...props }) => {
-  const baseClasses = "inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
+  const baseClasses = "inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900 transition-all duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed transform";
   
   const variantClasses = {
-    primary: 'bg-indigo-600 text-white hover:bg-indigo-500 focus-visible:ring-indigo-500',
-    secondary: 'bg-gray-700 text-gray-200 hover:bg-gray-600 focus-visible:ring-gray-500',
+    // New gradient style to match the "Create" button aesthetic from the user's screenshot.
+    // This provides a vibrant, modern look for all primary CTAs.
+    primary: 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/40 hover:from-indigo-600 hover:to-purple-700 hover:-translate-y-px focus-visible:ring-indigo-500 active:translate-y-0',
+    secondary: 'bg-gray-800 border border-gray-600 text-gray-300 shadow-sm hover:bg-gray-700 hover:border-gray-500 focus-visible:ring-gray-500 active:bg-gray-800/50',
   };
 
   const LoadingSpinner = () => (

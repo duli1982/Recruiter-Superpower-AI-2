@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type, GenerateContentResponse } from '@google/genai';
-import { Candidate, RankedCandidate, BiasAuditReport, JobRequisition, JobStatus, EmailTemplateType, InterviewStage, ScoutedCandidate } from '../types';
+import { Candidate, RankedCandidate, BiasAuditReport, JobRequisition, JobStatus, EmailTemplateType, InterviewStage, ScoutedCandidate, AIGroupAnalysisReport, PredictiveAnalysisReport } from '../types';
 
 if (!process.env.API_KEY) {
     console.warn("API_KEY environment variable not set. AI features will not work.");
@@ -395,5 +395,179 @@ export const scoutForTalent = async (jobTitle: string, skills: string, location:
     } catch (error) {
         console.error("Error scouting for talent:", error);
         throw new Error("Failed to scout for talent. The AI model might have returned an invalid format or encountered an error.");
+    }
+};
+
+export const analyzeCandidateGroup = async (candidates: Candidate[], jobTitle: string): Promise<AIGroupAnalysisReport> => {
+    const prompt = `
+        You are a senior recruiting manager tasked with analyzing a group of candidates for a hiring manager.
+
+        Target Role: ${jobTitle}
+
+        Candidate Profiles:
+        ---
+        ${candidates.map(c => `
+            ID: ${c.id}
+            Name: ${c.name}
+            Skills: ${c.skills}
+            Experience Summary: ${c.resumeSummary}
+        `).join('\n---\n')}
+        ---
+
+        Based on the profiles above, provide a comprehensive analysis. Your response MUST be a single JSON object with the following structure:
+        - combinedSummary: A 2-3 sentence paragraph summarizing the collective strengths of this group as it relates to the "${jobTitle}" role.
+        - collectiveStrengths: An array of strings, with each string being a key strength or skill overlap observed across multiple candidates.
+        - potentialGaps: An array of strings, with each string being a potential skill or experience gap for the target role when considering the group as a whole.
+        - suggestedRoles: An array of 3-4 strings, listing other job titles this group of candidates would be a strong fit for.
+        - individualAnalysis: An array of objects, one for each candidate. Each object should contain:
+            - id: The candidate's original ID (number).
+            - name: The candidate's name (string).
+            - matchScore: A score from 0 to 100 representing their match to the "${jobTitle}" role (number).
+            - strengths: An array of strings listing the candidate's key strengths for this role.
+            - weaknesses: An array of strings listing the candidate's key weaknesses or gaps for this role.
+            - reasoning: A brief, insightful explanation for their score (string).
+        
+        IMPORTANT: The 'individualAnalysis' array MUST be sorted in descending order by 'matchScore'.
+    `;
+
+    try {
+        const response: GenerateContentResponse = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        combinedSummary: { type: Type.STRING },
+                        collectiveStrengths: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        potentialGaps: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        suggestedRoles: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        individualAnalysis: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    id: { type: Type.NUMBER },
+                                    name: { type: Type.STRING },
+                                    matchScore: { type: Type.NUMBER },
+                                    strengths: { type: Type.ARRAY, items: { type: Type.STRING } },
+                                    weaknesses: { type: Type.ARRAY, items: { type: Type.STRING } },
+                                    reasoning: { type: Type.STRING },
+                                },
+                                required: ["id", "name", "matchScore", "strengths", "weaknesses", "reasoning"],
+                            }
+                        }
+                    },
+                    required: ["combinedSummary", "collectiveStrengths", "potentialGaps", "suggestedRoles", "individualAnalysis"],
+                },
+            },
+        });
+        
+        const jsonText = response.text.trim();
+        const result = JSON.parse(jsonText) as AIGroupAnalysisReport;
+        
+        // Ensure sorting is correct, even if the model doesn't follow instructions perfectly
+        result.individualAnalysis.sort((a, b) => b.matchScore - a.matchScore);
+
+        return result;
+    } catch (error) {
+        console.error("Error analyzing candidate group:", error);
+        throw new Error("Failed to generate candidate analysis. The AI model may have returned an unexpected response.");
+    }
+};
+
+
+export const generatePredictiveAnalysis = async (requisitions: JobRequisition[], candidates: Candidate[]): Promise<PredictiveAnalysisReport> => {
+    const historicalDataSummary = requisitions.map(r => `Role: ${r.title}, Dept: ${r.department}, Status: ${r.status}`).join('; ');
+    const availableSkillsSummary = [...new Set(candidates.flatMap(c => c.skills.split(',').map(s => s.trim())))].join(', ');
+
+    const prompt = `
+        You are a strategic workforce planning analyst. Your task is to provide a predictive analysis for a recruiting team based on their historical data and current talent pool. The time horizon is the next 6 months.
+
+        Historical Requisition Data (last 12-18 months):
+        ---
+        ${historicalDataSummary}
+        ---
+
+        Current Talent Pool Skills:
+        ---
+        ${availableSkillsSummary}
+        ---
+
+        Based on the data provided, generate a predictive report. Your response must be a single JSON object with the following structure:
+
+        - hiringForecasts: An array of 3-4 objects, sorted by demandScore descending. Each object should represent a role with high predicted hiring demand and contain:
+            - roleTitle: The job title (string).
+            - department: The department (string).
+            - demandScore: A score from 0 to 100 representing the hiring probability/urgency (number).
+            - reasoning: A brief (1-2 sentences) explanation for the forecast, based on hiring trends or department growth.
+        - skillGaps: An array of 4-5 objects, identifying the most critical skill gaps. Each object should contain:
+            - skill: The specific skill needed (e.g., 'React Native', 'Terraform') (string).
+            - demandLevel: 'High' | 'Medium' | 'Low'.
+            - supplyLevel: 'High' | 'Medium' | 'Low' | 'Very Low'. Based on the current talent pool.
+            - severity: 'Critical' | 'Moderate' | 'Minor'. 'Critical' means high demand and very low supply.
+        - marketTrends: An array of 2-3 objects, providing fictional but plausible external market insights that give context to the forecast. Each object should contain:
+            - insight: A concise statement about a market trend (string).
+            - impact: A brief explanation of how this trend impacts the company's hiring strategy (string).
+    `;
+
+    try {
+        const response: GenerateContentResponse = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        hiringForecasts: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    roleTitle: { type: Type.STRING },
+                                    department: { type: Type.STRING },
+                                    demandScore: { type: Type.NUMBER },
+                                    reasoning: { type: Type.STRING },
+                                },
+                                required: ["roleTitle", "department", "demandScore", "reasoning"],
+                            }
+                        },
+                        skillGaps: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    skill: { type: Type.STRING },
+                                    demandLevel: { type: Type.STRING },
+                                    supplyLevel: { type: Type.STRING },
+                                    severity: { type: Type.STRING },
+                                },
+                                required: ["skill", "demandLevel", "supplyLevel", "severity"],
+                            }
+                        },
+                        marketTrends: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    insight: { type: Type.STRING },
+                                    impact: { type: Type.STRING },
+                                },
+                                required: ["insight", "impact"],
+                            }
+                        }
+                    },
+                    required: ["hiringForecasts", "skillGaps", "marketTrends"],
+                },
+            },
+        });
+        
+        const jsonText = response.text.trim();
+        return JSON.parse(jsonText) as PredictiveAnalysisReport;
+    } catch (error) {
+        console.error("Error generating predictive analysis:", error);
+        throw new Error("Failed to generate predictive analysis report. The AI model may have returned an unexpected response.");
     }
 };
