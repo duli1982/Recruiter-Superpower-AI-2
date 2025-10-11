@@ -159,3 +159,13 @@ export interface PredictiveAnalysisReport {
   skillGaps: SkillGap[];
   marketTrends: MarketTrend[];
 }
+
+export interface SourcingStrategy {
+  creativeKeywords: string[];
+  alternativeJobTitles: string[];
+  untappedChannels: {
+    channel: string;
+    reasoning: string;
+  }[];
+  sampleOutreachMessage: string;
+}

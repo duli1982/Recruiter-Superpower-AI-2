@@ -152,7 +152,7 @@ export const CandidateExperienceTab: React.FC = () => {
                             <div>
                                 <label htmlFor="interviewStage" className="block text-sm font-medium text-gray-300">Interview Stage</label>
                                 <select id="interviewStage" value={interviewStage} onChange={e => setInterviewStage(e.target.value as InterviewStage)} className="mt-1 input-field">
-                                    {/* FIX: Cast Object.values to an array of strings to allow mapping over enum values. */}
+                                    {/* FIX: Cast result of Object.values to string array to allow mapping. */}
                                     {(Object.values(InterviewStage) as string[]).map(s => <option key={s} value={s}>{s}</option>)}
                                 </select>
                             </div>

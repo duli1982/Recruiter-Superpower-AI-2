@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type, GenerateContentResponse } from '@google/genai';
-import { Candidate, RankedCandidate, BiasAuditReport, JobRequisition, JobStatus, EmailTemplateType, InterviewStage, ScoutedCandidate, AIGroupAnalysisReport, PredictiveAnalysisReport } from '../types';
+import { Candidate, RankedCandidate, BiasAuditReport, JobRequisition, JobStatus, EmailTemplateType, InterviewStage, ScoutedCandidate, AIGroupAnalysisReport, PredictiveAnalysisReport, SourcingStrategy } from '../types';
 
 if (!process.env.API_KEY) {
     console.warn("API_KEY environment variable not set. AI features will not work.");
@@ -617,5 +617,60 @@ export const generatePredictiveAnalysis = async (requisitions: JobRequisition[],
     } catch (error) {
         console.error("Error generating predictive analysis:", error);
         throw new Error("Failed to generate predictive analysis report. The AI model may have returned an unexpected response.");
+    }
+};
+
+export const generateSourcingStrategy = async (requisition: JobRequisition): Promise<SourcingStrategy> => {
+    const prompt = `
+        You are an expert sourcing strategist for a top tech recruiting firm. 
+        Your task is to generate a creative and actionable sourcing strategy for the following job requisition.
+
+        Job Requisition:
+        - Title: ${requisition.title}
+        - Description: ${requisition.description}
+        - Required Skills: ${requisition.requiredSkills.join(', ')}
+
+        Provide a detailed strategy as a JSON object with the following structure:
+        - creativeKeywords: An array of 5-7 creative keywords and boolean strings for platforms like LinkedIn Recruiter or Google. Go beyond the obvious skills listed.
+        - alternativeJobTitles: An array of 4-6 alternative or related job titles to broaden the search.
+        - untappedChannels: An array of 3-4 objects, each representing an unconventional sourcing channel (e.g., specific GitHub repos, niche communities, newsletters, conference attendee lists). Each object must have:
+            - channel: The name of the channel (string).
+            - reasoning: A brief explanation of why this is a good place to find candidates for this specific role (string).
+        - sampleOutreachMessage: A concise, compelling, and personalized outreach message template (string). The message should be suitable for a passive candidate and reference the type of channels you've suggested.
+    `;
+
+    try {
+        const response: GenerateContentResponse = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        creativeKeywords: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        alternativeJobTitles: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        untappedChannels: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    channel: { type: Type.STRING },
+                                    reasoning: { type: Type.STRING },
+                                },
+                                required: ["channel", "reasoning"],
+                            },
+                        },
+                        sampleOutreachMessage: { type: Type.STRING },
+                    },
+                    required: ["creativeKeywords", "alternativeJobTitles", "untappedChannels", "sampleOutreachMessage"],
+                },
+            },
+        });
+        const jsonText = response.text.trim();
+        return JSON.parse(jsonText) as SourcingStrategy;
+    } catch (error) {
+        console.error("Error generating sourcing strategy:", error);
+        throw new Error("Failed to generate sourcing strategy. The AI model may have returned an unexpected response.");
     }
 };

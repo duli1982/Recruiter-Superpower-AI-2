@@ -15,6 +15,7 @@ import { IntegrationUpskillingTab } from './components/tabs/IntegrationUpskillin
 import { ProactiveSourcingTab } from './components/tabs/ProactiveSourcingTab';
 import { AdoptionCommunityTab } from './components/tabs/AdoptionCommunityTab';
 import { PredictiveAnalyticsTab } from './components/tabs/PredictiveAnalyticsTab';
+import { PerformanceCreativityTab } from './components/tabs/PerformanceCreativityTab';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>(Tab.AIAssistant);
@@ -43,6 +44,8 @@ const App: React.FC = () => {
         return <AdoptionCommunityTab />;
       case Tab.PredictiveAnalytics:
         return <PredictiveAnalyticsTab />;
+      case Tab.PerformanceCreativity:
+        return <PerformanceCreativityTab />;
       default:
         const tabInfo = TABS.find(t => t.id === activeTab);
         return <PlaceholderTab title={tabInfo?.name || 'Coming Soon'} description={tabInfo?.description || 'This feature is under development.'} icon={tabInfo?.icon} />;
