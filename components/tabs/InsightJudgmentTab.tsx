@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Card, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Spinner } from '../ui/Spinner';
@@ -34,11 +34,41 @@ const getInitialRequisitions = (): JobRequisition[] => {
 
 export const InsightJudgmentTab: React.FC = () => {
     const [jobRequisitions] = useState<JobRequisition[]>(getInitialRequisitions);
+    const [requisitionFilter, setRequisitionFilter] = useState('');
     const [selectedJobId, setSelectedJobId] = useState<number | undefined>(jobRequisitions[0]?.id);
     const [jobDescription, setJobDescription] = useState(jobRequisitions[0]?.description || '');
     const [rankedCandidates, setRankedCandidates] = useState<RankedCandidate[] | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+
+    const filteredRequisitions = useMemo(() => {
+        if (!requisitionFilter) {
+            return jobRequisitions;
+        }
+        const lowercasedFilter = requisitionFilter.toLowerCase();
+        return jobRequisitions.filter(job =>
+            job.title.toLowerCase().includes(lowercasedFilter) ||
+            job.department.toLowerCase().includes(lowercasedFilter)
+        );
+    }, [jobRequisitions, requisitionFilter]);
+    
+    useEffect(() => {
+        const isSelectedJobInFilteredList = filteredRequisitions.some(job => job.id === selectedJobId);
+
+        if (!isSelectedJobInFilteredList && filteredRequisitions.length > 0) {
+            // If current selection is filtered out, select the first available one
+            const newSelectedJob = filteredRequisitions[0];
+            setSelectedJobId(newSelectedJob.id);
+            setJobDescription(newSelectedJob.description);
+            setRankedCandidates(null);
+        } else if (filteredRequisitions.length === 0) {
+            // If filter returns no results, clear everything
+            setSelectedJobId(undefined);
+            setJobDescription('');
+            setRankedCandidates(null);
+        }
+    }, [filteredRequisitions, selectedJobId]);
+
 
     const handleJobChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const newJobId = parseInt(e.target.value, 10);
@@ -75,28 +105,39 @@ export const InsightJudgmentTab: React.FC = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
                     <div>
                         <div className="mb-4">
-                            <label htmlFor="jobSelect" className="block text-sm font-medium text-gray-300 mb-1">Select Job Requisition</label>
+                            <label htmlFor="jobFilter" className="block text-sm font-medium text-gray-300 mb-1">Filter Requisitions</label>
+                             <input
+                                type="text"
+                                id="jobFilter"
+                                placeholder="Search by title or department..."
+                                value={requisitionFilter}
+                                onChange={e => setRequisitionFilter(e.target.value)}
+                                className="block w-full bg-gray-800 border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-white p-3"
+                            />
+                        </div>
+                        <div className="mb-4">
+                            <label htmlFor="jobSelect" className="block text-sm font-medium text-gray-300 mb-1">Select Job Requisition ({filteredRequisitions.length})</label>
                             <select
                                 id="jobSelect"
                                 value={selectedJobId || ''}
                                 onChange={handleJobChange}
-                                disabled={jobRequisitions.length === 0}
+                                disabled={filteredRequisitions.length === 0}
                                 className="block w-full bg-gray-800 border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-white p-3 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                {jobRequisitions.length > 0 ? (
-                                    jobRequisitions.map(job => (
+                                {filteredRequisitions.length > 0 ? (
+                                    filteredRequisitions.map(job => (
                                         <option key={job.id} value={job.id}>
                                             {job.title}
                                         </option>
                                     ))
                                 ) : (
-                                    <option>No job requisitions found</option>
+                                    <option>No requisitions found</option>
                                 )}
                             </select>
                         </div>
                         <div>
                             <label htmlFor="jobDescription" className="block text-sm font-medium text-gray-300 mb-1">Job Description</label>
-                            <textarea id="jobDescription" rows={12} value={jobDescription} onChange={e => setJobDescription(e.target.value)} className="block w-full bg-gray-800 border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-white p-3"></textarea>
+                            <textarea id="jobDescription" rows={10} value={jobDescription} onChange={e => setJobDescription(e.target.value)} className="block w-full bg-gray-800 border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-white p-3"></textarea>
                         </div>
                          <Button onClick={handleRankCandidates} isLoading={isLoading} className="mt-4 w-full lg:w-auto" disabled={!jobDescription || isLoading}>
                             Rank Candidates

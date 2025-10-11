@@ -44,7 +44,8 @@ const SharePromptModal: React.FC<{ onSave: (prompt: Omit<CommunityPrompt, 'id'>)
         onSave(newPrompt);
     };
 
-    const targetableTabs = TABS.filter(t => [Tab.ProactiveSourcing, Tab.AdminElimination, Tab.DiversityEthics, Tab.InsightJudgment].includes(t.id));
+    // FIX: Replaced Tab.AdminElimination with Tab.AIAssistant, which exists in the Tab enum.
+    const targetableTabs = TABS.filter(t => [Tab.ProactiveSourcing, Tab.AIAssistant, Tab.DiversityEthics, Tab.InsightJudgment].includes(t.id));
 
     return (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center" onClick={onClose}>
@@ -135,7 +136,6 @@ export const AdoptionCommunityTab: React.FC = () => {
                         <Card key={prompt.id} className="flex flex-col">
                             <div className="flex items-start justify-between mb-2">
                                 <h3 className="text-lg font-bold text-white">{prompt.title}</h3>
-                                {/* FIX: Cast icon to allow passing className prop without type errors. */}
                                 {targetTabInfo && React.cloneElement(targetTabInfo.icon as React.ReactElement<any>, { className: 'h-6 w-6 text-indigo-400' })}
                             </div>
                             <p className="text-sm text-gray-400 flex-grow">{prompt.description}</p>

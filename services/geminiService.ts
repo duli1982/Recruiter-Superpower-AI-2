@@ -398,6 +398,54 @@ export const scoutForTalent = async (jobTitle: string, skills: string, location:
     }
 };
 
+export const generateOutreachEmail = async (jobTitle: string, skills: string, candidateCount: number): Promise<{ subject: string; body: string; }> => {
+    const prompt = `
+        You are an expert tech recruiter writing a bulk outreach email. Based on the following criteria, generate a compelling but slightly generic email template that can be sent to multiple candidates at once.
+
+        Role: ${jobTitle}
+        Key Skills: ${skills}
+        Number of recipients: ${candidateCount}
+
+        Your response must be a single JSON object with two keys: "subject" and "body".
+
+        Instructions for the "subject":
+        - Make it catchy and professional to maximize open rates.
+        - Mention the role, for example: "Opportunity for a Senior Backend Engineer".
+
+        Instructions for the "body":
+        1. Start directly with the main content. DO NOT include a greeting like "Hi [Candidate Name]," or "Hello,".
+        2. The tone should be enthusiastic, professional, and respectful of their time.
+        3. Briefly introduce yourself and your company (use "Innovate Inc.").
+        4. Mention the ${jobTitle} role and explain why their expertise in skills like ${skills} is relevant.
+        5. Keep it concise (around 3-4 short paragraphs).
+        6. End with a clear, low-pressure call to action, like suggesting a brief, informal chat.
+        7. Do not include a sign-off (like "Best regards,"). The user will add this.
+    `;
+
+    try {
+        const response: GenerateContentResponse = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        subject: { type: Type.STRING },
+                        body: { type: Type.STRING },
+                    },
+                    required: ["subject", "body"],
+                },
+            },
+        });
+        const jsonText = response.text.trim();
+        return JSON.parse(jsonText) as { subject: string; body: string; };
+    } catch (error) {
+        console.error("Error generating outreach email:", error);
+        throw new Error("Failed to generate the outreach email. The AI model may have returned an unexpected response.");
+    }
+};
+
 export const analyzeCandidateGroup = async (candidates: Candidate[], jobTitle: string): Promise<AIGroupAnalysisReport> => {
     const prompt = `
         You are a senior recruiting manager tasked with analyzing a group of candidates for a hiring manager.

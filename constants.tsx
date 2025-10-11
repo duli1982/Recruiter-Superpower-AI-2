@@ -19,7 +19,7 @@ const LayoutGridIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props}
 
 // FIX: Changed icon type from JSX.Element to React.ReactElement to resolve "Cannot find namespace 'JSX'" error.
 export const TABS: { id: Tab; name: string; icon: React.ReactElement, description: string }[] = [
-  { id: Tab.AdminElimination, name: 'Admin Elimination', icon: <ZapIcon className="h-5 w-5" />, description: "Automate tasks recruiters hate, like data entry and scheduling." },
+  { id: Tab.AIAssistant, name: 'AI Assistant', icon: <ZapIcon className="h-5 w-5" />, description: "Automate tasks like data entry, email drafting, and scheduling." },
   { id: Tab.InsightJudgment, name: 'Insight & Judgment', icon: <LightbulbIcon className="h-5 w-5" />, description: "Amplify your advisory skills with AI-powered insights and predictions."},
   { id: Tab.JobRequisitions, name: 'Job Requisitions', icon: <BriefcaseIcon className="h-5 w-5" />, description: "Manage and track job statuses with AI-driven suggestions."},
   { id: Tab.CandidateProfiles, name: 'Candidate Profiles', icon: <ProfileIcon className="h-5 w-5" />, description: "View, add, and manage detailed candidate profiles." },
@@ -130,7 +130,7 @@ export const MOCK_COMMUNITY_PROMPTS: CommunityPrompt[] = [
         author: "Jordan",
         upvotes: 78,
         usageCount: 254,
-        targetFeature: Tab.AdminElimination,
+        targetFeature: Tab.AIAssistant,
         tags: ["Email", "Candidate Experience", "Rejection"]
     },
     {

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { Tab } from './types';
-import { AdminEliminationTab } from './components/tabs/AdminEliminationTab';
+import { AIAssistantTab } from './components/tabs/AIAssistantTab';
 import { InsightJudgmentTab } from './components/tabs/InsightJudgmentTab';
 import { DiversityEthicsTab } from './components/tabs/DiversityEthicsTab';
 import { PlaceholderTab } from './components/tabs/PlaceholderTab';
@@ -17,12 +17,12 @@ import { AdoptionCommunityTab } from './components/tabs/AdoptionCommunityTab';
 import { PredictiveAnalyticsTab } from './components/tabs/PredictiveAnalyticsTab';
 
 const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<Tab>(Tab.AdminElimination);
+  const [activeTab, setActiveTab] = useState<Tab>(Tab.AIAssistant);
 
   const renderContent = () => {
     switch (activeTab) {
-      case Tab.AdminElimination:
-        return <AdminEliminationTab />;
+      case Tab.AIAssistant:
+        return <AIAssistantTab />;
       case Tab.InsightJudgment:
         return <InsightJudgmentTab />;
       case Tab.DiversityEthics:

@@ -1,5 +1,5 @@
 export enum Tab {
-  AdminElimination = 'ADMIN_ELIMINATION',
+  AIAssistant = 'AI_ASSISTANT',
   InsightJudgment = 'INSIGHT_JUDGMENT',
   JobRequisitions = 'JOB_REQUISITIONS',
   CandidateProfiles = 'CANDIDATE_PROFILES',

@@ -83,7 +83,6 @@ export const CandidateExperienceTab: React.FC = () => {
         setGenerationError('');
         setGeneratedEmail('');
         try {
-            // FIX: Explicitly type the `slot` parameter as string to resolve type error.
             const formattedSlots = Array.from(selectedSlots).map((slot: string) => {
                 return new Date(slot).toLocaleString(undefined, {
                     weekday: 'long',
@@ -153,8 +152,8 @@ export const CandidateExperienceTab: React.FC = () => {
                             <div>
                                 <label htmlFor="interviewStage" className="block text-sm font-medium text-gray-300">Interview Stage</label>
                                 <select id="interviewStage" value={interviewStage} onChange={e => setInterviewStage(e.target.value as InterviewStage)} className="mt-1 input-field">
-                                    {/* FIX: Removed incorrect cast on Object.values which was causing a type error. */}
-                                    {Object.values(InterviewStage).map(s => <option key={s} value={s}>{s}</option>)}
+                                    {/* FIX: Cast Object.values to an array of strings to allow mapping over enum values. */}
+                                    {(Object.values(InterviewStage) as string[]).map(s => <option key={s} value={s}>{s}</option>)}
                                 </select>
                             </div>
                         </div>
