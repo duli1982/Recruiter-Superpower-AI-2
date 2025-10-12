@@ -74,13 +74,13 @@ export const PerformanceCreativityTab: React.FC = () => {
         const isAllJobs = selectedAnalyticsJobId === 'all';
         const relevantPipeline = isAllJobs ? pipelineData : { [selectedAnalyticsJobId]: pipelineData[selectedAnalyticsJobId] || {} };
 
-        // FIX: Cast Object.values to a typed array to resolve type inference issues.
+        // FIX: Removed unnecessary type cast that was causing type inference failures.
         const hiredCandidatesInPipeline = new Set(
-            (Object.values(relevantPipeline) as { [stage in PipelineStage]?: number[] }[]).flatMap(job => job[PipelineStage.Hired] || [])
+            Object.values(relevantPipeline).flatMap(job => job[PipelineStage.Hired] || [])
         );
-        // FIX: Cast Object.values to a typed array to resolve type inference issues.
+        // FIX: Removed unnecessary type cast that was causing type inference failures.
         const offerCandidatesInPipeline = new Set(
-             (Object.values(relevantPipeline) as { [stage in PipelineStage]?: number[] }[]).flatMap(job => job[PipelineStage.Offer] || [])
+             Object.values(relevantPipeline).flatMap(job => job[PipelineStage.Offer] || [])
         );
 
         const totalOffersMade = hiredCandidatesInPipeline.size + offerCandidatesInPipeline.size;
@@ -111,8 +111,8 @@ export const PerformanceCreativityTab: React.FC = () => {
         const relevantPipeline = isAllJobs ? pipelineData : { [selectedAnalyticsJobId]: pipelineData[selectedAnalyticsJobId] || {} };
 
         const stageCounts = PIPELINE_STAGES.reduce((acc, stage) => {
-            // FIX: Cast Object.values to a typed array to resolve type inference issues.
-            acc[stage] = (Object.values(relevantPipeline) as { [k in PipelineStage]?: number[] }[]).reduce((sum: number, job) => sum + (job[stage]?.length || 0), 0);
+            // FIX: Removed unnecessary type cast that was causing type inference failures.
+            acc[stage] = Object.values(relevantPipeline).reduce((sum: number, job) => sum + (job[stage]?.length || 0), 0);
             return acc;
         }, {} as Record<PipelineStage, number>);
         
@@ -131,8 +131,8 @@ export const PerformanceCreativityTab: React.FC = () => {
         const isAllJobs = selectedAnalyticsJobId === 'all';
         const relevantPipeline = isAllJobs ? pipelineData : { [selectedAnalyticsJobId]: pipelineData[selectedAnalyticsJobId] || {} };
 
-        // FIX: Cast Object.values to a typed array to resolve type inference issues.
-        const hiredIds = new Set((Object.values(relevantPipeline) as { [k in PipelineStage]?: number[] }[]).flatMap(p => p[PipelineStage.Hired] || []));
+        // FIX: Removed unnecessary type cast that was causing type inference failures.
+        const hiredIds = new Set(Object.values(relevantPipeline).flatMap(p => p[PipelineStage.Hired] || []));
         const sourceCounts = candidates
             .filter(c => hiredIds.has(c.id))
             .flatMap(c => c.tags || [TagType.Passive]) // Default to passive if no tags

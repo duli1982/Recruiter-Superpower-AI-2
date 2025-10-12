@@ -152,8 +152,8 @@ export const CandidateExperienceTab: React.FC = () => {
                             <div>
                                 <label htmlFor="interviewStage" className="block text-sm font-medium text-gray-300">Interview Stage</label>
                                 <select id="interviewStage" value={interviewStage} onChange={e => setInterviewStage(e.target.value as InterviewStage)} className="mt-1 input-field">
-                                    {/* FIX: Cast result of Object.values to string array to allow mapping. */}
-                                    {(Object.values(InterviewStage) as string[]).map(s => <option key={s} value={s}>{s}</option>)}
+                                    {/* FIX: Removed explicit cast `as string[]` which was causing a type inference issue. TypeScript correctly infers `Object.values` on a string enum as `string[]`. */}
+                                    {Object.values(InterviewStage).map(s => <option key={s} value={s}>{s}</option>)}
                                 </select>
                             </div>
                         </div>

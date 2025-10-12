@@ -70,6 +70,10 @@ export const DiversityEthicsTab: React.FC = () => {
         }
     };
 
+    const handleApplySuggestion = (original: string, suggestion: string) => {
+        setJobDescription(currentJD => currentJD.replace(original, suggestion));
+    };
+
     return (
         <div>
             <h2 className="text-2xl font-bold text-white mb-6">Diversity & Ethics</h2>
@@ -135,6 +139,11 @@ export const DiversityEthicsTab: React.FC = () => {
                                                 <p className="text-sm text-red-400 line-through">"{item.originalText}"</p>
                                                 <p className="text-sm text-green-400 mt-1">"{item.suggestion}"</p>
                                                 <p className="text-xs text-gray-400 mt-2">{item.explanation}</p>
+                                                <div className="mt-3 text-right">
+                                                    <Button variant="secondary" className="!text-xs !py-1 !px-2" onClick={() => handleApplySuggestion(item.originalText, item.suggestion)}>
+                                                        Apply Suggestion
+                                                    </Button>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
