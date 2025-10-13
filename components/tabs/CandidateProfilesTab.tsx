@@ -18,6 +18,7 @@ const BriefcaseIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} 
 const HeartIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>;
 const MessageCircleIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>;
 const PhoneIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>;
+const AlertTriangleIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>;
 // FIX: Added the missing UsersIcon component definition to resolve the "Cannot find name" error.
 const UsersIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>;
 
@@ -294,6 +295,8 @@ export const CandidateProfilesTab: React.FC = () => {
     
     const renderCrmDetails = (candidate: Candidate) => {
         const crm = candidate.crm || BLANK_CRM;
+        const daysSinceContact = candidate.lastContactDate ? Math.floor((new Date().getTime() - new Date(candidate.lastContactDate).getTime()) / (1000 * 3600 * 24)) : null;
+        const isAging = daysSinceContact !== null && daysSinceContact > 14;
         const touchpointIcons: Record<TouchpointType, React.ReactNode> = { 'Email': <MessageCircleIcon className="h-4 w-4"/>, 'Call': <PhoneIcon className="h-4 w-4"/>, 'Meeting': <UsersIcon className="h-4 w-4"/>, 'Note': <EditIcon className="h-4 w-4"/> };
         return(
             <div className="overflow-y-auto flex-1 space-y-6 pr-2 -mr-2">
@@ -302,9 +305,25 @@ export const CandidateProfilesTab: React.FC = () => {
                     <div className="p-3 bg-gray-800 rounded-lg"><p className="label">Next Follow-up</p><p className="text-sm font-semibold">{crm.nextFollowUpDate ? new Date(crm.nextFollowUpDate).toLocaleDateString() : 'Not Set'}</p></div>
                     <div className="p-3 bg-gray-800 rounded-lg"><p className="label">Relationship Score</p><p className={`text-sm font-semibold ${getScoreColor(crm.relationshipScore)}`}>{crm.relationshipScore}/100</p></div>
                 </div>
+                
+                <div className="p-4 bg-gray-800 rounded-lg border border-gray-700">
+                    <h4 className="font-semibold text-gray-300 mb-2">Relationship Health</h4>
+                    {isAging ? (
+                        <div className="flex items-center gap-3 p-3 bg-yellow-900/30 border border-yellow-700/50 rounded-md">
+                            <AlertTriangleIcon className="h-6 w-6 text-yellow-400 flex-shrink-0" />
+                            <div>
+                                <p className="font-semibold text-yellow-300">Candidate is going cold!</p>
+                                <p className="text-sm text-yellow-400">Last contact was {daysSinceContact} days ago. It's time to re-engage.</p>
+                            </div>
+                        </div>
+                    ) : (
+                         <p className="text-sm text-gray-400">Relationship is warm. Last contact was {daysSinceContact} days ago.</p>
+                    )}
+                </div>
+
                 <Card className="bg-gray-950 border-indigo-700/50">
                     <CardHeader title="AI Nurture Assistant" icon={<SparklesIcon />} description="Get smart suggestions for your next move."/>
-                    <Button onClick={handleGetCrmSuggestion} isLoading={isGeneratingCrmSuggestion} className="w-full">Suggest Next Step</Button>
+                    <Button onClick={handleGetCrmSuggestion} isLoading={isGeneratingCrmSuggestion} className="w-full">{isAging ? 'Suggest Re-engagement' : 'Suggest Next Step'}</Button>
                     {isGeneratingCrmSuggestion && <Spinner text="Thinking..."/>}
                     {crmSuggestion && <div className="mt-4 p-3 bg-indigo-900/40 rounded-lg text-sm text-indigo-200">{crmSuggestion.suggestion}</div>}
                 </Card>

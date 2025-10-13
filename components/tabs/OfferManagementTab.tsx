@@ -12,6 +12,8 @@ const ClockIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmln
 const XCircleIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>;
 const LightbulbIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15.09 16.05A6.5 6.5 0 0 1 8.94 9.9M9 9h.01M4.93 4.93l.01.01M2 12h.01M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0zM12 2v.01M19.07 4.93l-.01.01M22 12h-.01M19.07 19.07l-.01-.01M12 22v-.01" /></svg>;
 const FileTextIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>;
+const FireIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>;
+
 
 const OFFERS_STORAGE_KEY = 'recruiter-ai-offers';
 const CANDIDATES_STORAGE_KEY = 'recruiter-ai-candidates';
@@ -156,6 +158,14 @@ export const OfferManagementTab: React.FC = () => {
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 overflow-y-auto flex-grow -mr-4 pr-3">
                                 {/* Left Column: Negotiation & Actions */}
                                 <div className="md:col-span-2 space-y-6">
+                                    {selectedOffer.competitiveIntel && selectedOffer.competitiveIntel.length > 0 && (
+                                        <Card className="border-red-500/50 bg-red-900/20">
+                                            <CardHeader title="Urgency Indicator" icon={<FireIcon className="text-red-400"/>} />
+                                            <ul className="list-disc list-inside mt-2 space-y-1 text-red-200 text-sm">
+                                                {selectedOffer.competitiveIntel.map((intel, i) => <li key={i}>{intel}</li>)}
+                                            </ul>
+                                        </Card>
+                                    )}
                                     <div className="p-4 bg-gray-800 rounded-lg border border-gray-700">
                                         <h4 className="font-semibold text-gray-200 mb-2">Negotiation History</h4>
                                         <div className="space-y-3">
@@ -169,8 +179,8 @@ export const OfferManagementTab: React.FC = () => {
                                         </div>
                                     </div>
                                      <Card className="bg-gray-950 border-indigo-700/50">
-                                        <CardHeader title="AI Negotiation Coach" icon={<LightbulbIcon />} />
-                                        <Button onClick={handleGetAdvice} isLoading={isLoadingAdvice} className="w-full">Get Advice</Button>
+                                        <CardHeader title="AI Closing Playbook" icon={<LightbulbIcon />} />
+                                        <Button onClick={handleGetAdvice} isLoading={isLoadingAdvice} className="w-full">Generate Closing Tactics</Button>
                                         {negotiationAdvice.length > 0 && (
                                             <ul className="mt-4 space-y-2 list-disc list-inside text-sm text-indigo-200">
                                                 {negotiationAdvice.map((advice, i) => <li key={i}>{advice}</li>)}

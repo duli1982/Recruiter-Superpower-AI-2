@@ -58,6 +58,7 @@ export const MOCK_CANDIDATES: Candidate[] = [
         },
         visaStatus: 'US Citizen',
         gender: 'Male',
+        hasCompetingOffer: true,
         applicationHistory: [
             { jobId: 101, jobTitle: 'Senior Frontend Engineer', stageReached: 'Technical Interview', dateApplied: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(), outcome: 'In Progress' }
         ],
@@ -86,7 +87,7 @@ export const MOCK_CANDIDATES: Candidate[] = [
         availability: '1 Month Notice', 
         tags: [TagType.Referral],
         status: CandidateStatus.Passive,
-        lastContactDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+        lastContactDate: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
         source: 'Referral by J. Doe',
         compensation: {
             currentSalary: 155000,
@@ -186,7 +187,7 @@ export const MOCK_CANDIDATES: Candidate[] = [
         availability: '3 Weeks Notice', 
         tags: [TagType.Referral],
         status: CandidateStatus.Interviewing,
-        lastContactDate: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+        lastContactDate: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString(),
         source: 'Referral by B. Smith',
         gender: 'Male',
         visaStatus: 'Green Card',
@@ -209,7 +210,9 @@ export const MOCK_JOB_REQUISITIONS: JobRequisition[] = [
             { stage: 'Hiring Manager Approval', approver: 'Casey Newton', status: 'Approved', timestamp: new Date(Date.now() - 36 * 24 * 60 * 60 * 1000).toISOString() },
             { stage: 'Finance Approval', approver: 'Alex Rivera', status: 'Approved', timestamp: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000).toISOString() },
             { stage: 'VP Approval', approver: 'Jordan Lee', status: 'Approved', timestamp: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000).toISOString() },
-        ]
+        ],
+        isLocked: true,
+        initialRequiredSkills: ['React', 'TypeScript', 'AWS'],
     },
     { 
         id: 102, 
@@ -226,7 +229,8 @@ export const MOCK_JOB_REQUISITIONS: JobRequisition[] = [
             { stage: 'Hiring Manager Approval', approver: 'Taylor Smith', status: 'Approved', timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
             { stage: 'Finance Approval', approver: 'Alex Rivera', status: 'Pending' },
             { stage: 'VP Approval', approver: 'Jordan Lee', status: 'Pending' },
-        ]
+        ],
+        isLocked: false,
     },
     { 
         id: 103, 
@@ -243,7 +247,9 @@ export const MOCK_JOB_REQUISITIONS: JobRequisition[] = [
              { stage: 'Hiring Manager Approval', approver: 'Morgan Kelly', status: 'Approved', timestamp: new Date(Date.now() - 96 * 24 * 60 * 60 * 1000).toISOString() },
             { stage: 'Finance Approval', approver: 'Alex Rivera', status: 'Approved', timestamp: new Date(Date.now() - 95 * 24 * 60 * 60 * 1000).toISOString() },
             { stage: 'VP Approval', approver: 'Jordan Lee', status: 'Approved', timestamp: new Date(Date.now() - 95 * 24 * 60 * 60 * 1000).toISOString() },
-        ]
+        ],
+        isLocked: true,
+        initialRequiredSkills: ['Figma', 'Prototyping', 'User Research'],
     },
     { 
         id: 104, 
@@ -260,7 +266,9 @@ export const MOCK_JOB_REQUISITIONS: JobRequisition[] = [
             { stage: 'Hiring Manager Approval', approver: 'Casey Newton', status: 'Approved' },
             { stage: 'Finance Approval', approver: 'Alex Rivera', status: 'Approved' },
             { stage: 'VP Approval', approver: 'Jordan Lee', status: 'Approved' },
-        ]
+        ],
+        isLocked: true,
+        initialRequiredSkills: ['Kubernetes', 'Terraform', 'CI/CD'],
     },
     { 
         id: 105, 
@@ -277,7 +285,9 @@ export const MOCK_JOB_REQUISITIONS: JobRequisition[] = [
             { stage: 'Hiring Manager Approval', approver: 'Sam Altman', status: 'Approved' },
             { stage: 'Finance Approval', approver: 'Alex Rivera', status: 'Approved' },
             { stage: 'VP Approval', approver: 'Jordan Lee', status: 'Approved' },
-        ]
+        ],
+        isLocked: true,
+        initialRequiredSkills: ['Python', 'Machine Learning', 'Spark'],
     },
 ];
 
@@ -475,7 +485,8 @@ export const MOCK_SCHEDULED_INTERVIEWS: Interview[] = [
         endTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000).toISOString(),
         interviewers: ['Casey Newton', 'Taylor Smith', 'Jordan Lee'],
         videoLink: 'https://meet.google.com/xyz-abc-def',
-        reminders: { twentyFourHour: true, oneHour: true, fifteenMin: false }
+        reminders: { twentyFourHour: true, oneHour: true, fifteenMin: false },
+        feedbackSubmitted: true,
     },
     {
         id: 'interview-2',
@@ -487,7 +498,8 @@ export const MOCK_SCHEDULED_INTERVIEWS: Interview[] = [
         endTime: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000 + 60 * 60 * 1000).toISOString(),
         interviewers: ['Alex Johnson'],
         videoLink: 'https://meet.google.com/ghi-jkl-mno',
-        reminders: { twentyFourHour: true, oneHour: true, fifteenMin: true }
+        reminders: { twentyFourHour: true, oneHour: true, fifteenMin: true },
+        feedbackSubmitted: false,
     }
 ];
 

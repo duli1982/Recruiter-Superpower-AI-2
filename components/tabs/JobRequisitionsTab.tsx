@@ -13,6 +13,7 @@ const AlertTriangleIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...pro
 const CheckCircleIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>;
 const ClockIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
 const XCircleIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>;
+const LockIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>;
 
 
 const STORAGE_KEY = 'recruiter-ai-requisitions';
@@ -116,7 +117,9 @@ export const JobRequisitionsTab: React.FC = () => {
                 id: newId, 
                 ...editingReq,
                 createdAt: new Date().toISOString(),
-                applications: 0
+                applications: 0,
+                isLocked: true, // Lock requirements on creation
+                initialRequiredSkills: editingReq.requiredSkills
             } as JobRequisition;
             setRequisitions(prev => [newReq, ...prev]);
             setSelectedReqId(newId);
@@ -165,6 +168,39 @@ export const JobRequisitionsTab: React.FC = () => {
         );
     };
 
+    const ScopeCreepAlert: React.FC<{req: JobRequisition}> = ({req}) => {
+        if (!req.isLocked || !req.initialRequiredSkills) return null;
+
+        const initialSkills = new Set(req.initialRequiredSkills);
+        const currentSkills = new Set(req.requiredSkills);
+        
+        const added = req.requiredSkills.filter(skill => !initialSkills.has(skill));
+        const removed = req.initialRequiredSkills.filter(skill => !currentSkills.has(skill));
+
+        if (added.length === 0 && removed.length === 0) return null;
+
+        return (
+            <Card className="border-yellow-500/50 bg-yellow-900/20">
+                <CardHeader title="Scope Creep Alert" icon={<AlertTriangleIcon className="text-yellow-400" />} />
+                <div className="mt-2 text-sm space-y-3">
+                    <p className="text-yellow-200">The required skills for this role have changed since it was approved.</p>
+                    {added.length > 0 && <div>
+                        <h5 className="font-semibold text-green-300">Skills Added:</h5>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                            {added.map(s => <span key={s} className="bg-green-500/20 text-green-200 text-xs font-medium px-2 py-1 rounded-full">{s}</span>)}
+                        </div>
+                    </div>}
+                     {removed.length > 0 && <div>
+                        <h5 className="font-semibold text-red-300">Skills Removed:</h5>
+                         <div className="flex flex-wrap gap-2 mt-1">
+                            {removed.map(s => <span key={s} className="bg-red-500/20 text-red-200 text-xs font-medium px-2 py-1 rounded-full line-through">{s}</span>)}
+                        </div>
+                    </div>}
+                </div>
+            </Card>
+        );
+    }
+
     return (
         <div className="h-[calc(100vh-11rem)]">
             <div className="flex justify-between items-center mb-4">
@@ -201,7 +237,11 @@ export const JobRequisitionsTab: React.FC = () => {
                             return (
                                 <div key={req.id} onClick={() => setSelectedReqId(req.id)} className={`p-3 rounded-lg cursor-pointer transition-colors ${selectedReqId === req.id ? 'bg-indigo-600/30 border-indigo-500' : 'bg-gray-800 hover:bg-gray-700/50 border-gray-700'} border`}>
                                     <div className="flex justify-between items-start">
-                                        <p className="font-semibold text-white truncate pr-2">{req.title}</p>
+                                        <div className="flex items-center gap-2">
+                                            {/* FIX: Wrapped LockIcon in a span with a title attribute to provide a tooltip, resolving the SVG prop type error. */}
+                                            {req.isLocked && <span title="Requirements Locked"><LockIcon className="h-3 w-3 text-gray-400 flex-shrink-0" /></span>}
+                                            <p className="font-semibold text-white truncate pr-2">{req.title}</p>
+                                        </div>
                                         <StatusBadge status={req.status} />
                                     </div>
                                     <div className="flex justify-between items-center mt-2 text-xs">
@@ -228,6 +268,7 @@ export const JobRequisitionsTab: React.FC = () => {
                             </div>
                             <div className="overflow-y-auto flex-grow grid grid-cols-1 md:grid-cols-3 gap-6 -mr-4 pr-3">
                                 <div className="md:col-span-2 space-y-4">
+                                    <ScopeCreepAlert req={selectedReq} />
                                     <div>
                                         <h4 className="font-semibold text-gray-300 mb-1">Description</h4>
                                         <p className="text-sm text-gray-400 whitespace-pre-wrap">{selectedReq.description}</p>

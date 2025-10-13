@@ -16,14 +16,29 @@ const getInitialData = <T,>(key: string, fallback: T): T => {
     return fallback;
 };
 
+const ClockIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
+const FireIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>;
+
+
 const CandidateCard: React.FC<{ candidate: Candidate; onDragStart: (e: React.DragEvent<HTMLDivElement>, candidateId: number) => void }> = ({ candidate, onDragStart }) => {
+    const daysSinceContact = candidate.lastContactDate ? Math.floor((new Date().getTime() - new Date(candidate.lastContactDate).getTime()) / (1000 * 3600 * 24)) : 0;
+    const isAging = daysSinceContact > 14;
+
     return (
         <div
             draggable
             onDragStart={(e) => onDragStart(e, candidate.id)}
             className="bg-gray-800 p-3 rounded-md border border-gray-700 shadow-sm cursor-grab active:cursor-grabbing hover:bg-gray-700/50 transition-colors"
         >
-            <p className="font-semibold text-sm text-white truncate">{candidate.name}</p>
+            <div className="flex items-center justify-between mb-1">
+                <p className="font-semibold text-sm text-white truncate">{candidate.name}</p>
+                 <div className="flex items-center gap-2">
+                    {/* FIX: Wrapped icon in a span with a title attribute to provide a tooltip, resolving the SVG prop type error. */}
+                    {isAging && <span title={`${daysSinceContact} days since last contact`}><ClockIcon className="h-4 w-4 text-yellow-400 flex-shrink-0" /></span>}
+                    {/* FIX: Wrapped icon in a span with a title attribute to provide a tooltip, resolving the SVG prop type error. */}
+                    {candidate.hasCompetingOffer && <span title="Has competing offer!"><FireIcon className="h-4 w-4 text-red-500 flex-shrink-0" /></span>}
+                </div>
+            </div>
             <p className="text-xs text-gray-400 truncate">{candidate.skills.split(',')[0]}</p>
         </div>
     );

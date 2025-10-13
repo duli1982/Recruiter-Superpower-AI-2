@@ -92,6 +92,7 @@ export interface Candidate {
   applicationHistory?: ApplicationHistory[];
   gender?: 'Male' | 'Female' | 'Non-binary' | 'Prefer not to say';
   crm?: CandidateCRM;
+  hasCompetingOffer?: boolean;
 }
 
 export interface RankedCandidate {
@@ -147,6 +148,9 @@ export interface JobRequisition {
         budgetCode: string;
     };
     approvalWorkflow: ApprovalStep[];
+    // New fields for hiring manager guardrails
+    isLocked?: boolean;
+    initialRequiredSkills?: string[];
 }
 
 
@@ -349,6 +353,7 @@ export interface Interview {
     oneHour: boolean;
     fifteenMin: boolean;
   };
+  feedbackSubmitted?: boolean;
 }
 
 export interface InterviewPacket {

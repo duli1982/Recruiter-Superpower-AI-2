@@ -248,28 +248,31 @@ export const getJobRequisitionSuggestion = async (requisition: JobRequisition, p
 };
 
 export const getCRMSuggestion = async (candidate: Candidate): Promise<{ suggestion: string; nextStep: 'Email' | 'Call' | 'Note' }> => {
+    const lastContactDaysAgo = candidate.lastContactDate ? Math.floor((new Date().getTime() - new Date(candidate.lastContactDate).getTime()) / (1000 * 3600 * 24)) : null;
+
     const prompt = `
-        You are an expert Candidate Relationship Management (CRM) strategist for a senior recruiter.
-        Analyze the following candidate profile and provide a concise, actionable next step to nurture the relationship.
+        You are an expert Candidate Relationship Management (CRM) strategist for a senior recruiter, thinking like a top-tier salesperson.
+        Analyze the following candidate profile and provide a concise, actionable next step to nurture the relationship and move them towards a close.
 
         Candidate Profile:
         - Name: ${candidate.name}
         - Skills: ${candidate.skills}
         - Summary: ${candidate.resumeSummary}
         - CRM Status: ${candidate.crm?.relationshipStatus}
-        - Last Contact: ${candidate.lastContactDate ? new Date(candidate.lastContactDate).toLocaleDateString() : 'N/A'}
-        - Next Scheduled Follow-up: ${candidate.crm?.nextFollowUpDate ? new Date(candidate.crm.nextFollowUpDate).toLocaleDateString() : 'None'}
+        - Last Contact: ${lastContactDaysAgo !== null ? `${lastContactDaysAgo} days ago` : 'N/A'}
         - Touchpoint History: ${candidate.crm?.touchpointHistory.map(tp => `${new Date(tp.date).toLocaleDateString()}: ${tp.type} - ${tp.notes}`).join('\n')}
 
         Today's date is ${new Date().toLocaleDateString()}.
+
+        **CRITICAL RULE:** If the last contact was more than 14 days ago, the candidate is "going cold." Your primary goal is to suggest a specific, high-value re-engagement tactic to warm them up again. DO NOT suggest a generic "check-in." Instead, suggest sharing a relevant article, mentioning a company milestone, or referencing one of their skills in a new context.
 
         Your task is to return a single JSON object with two keys:
         1. "suggestion": A creative, personalized, and actionable suggestion for the next touchpoint. Be specific. If suggesting an email, mention the topic.
         2. "nextStep": The type of action suggested. Must be one of: 'Email', 'Call', 'Note'.
 
-        Example for a "Silver Medalist":
+        Example for a "Silver Medalist" who is going cold:
         {
-          "suggestion": "Brenda was a finalist 3 months ago for a similar role. A new 'Senior Product Designer' req just opened up that perfectly matches her skills. Suggest sending a personalized email referencing her previous strong performance and highlighting this new opportunity.",
+          "suggestion": "Brenda went cold 45 days ago. Re-engage her by sending a link to our new design system blog post. Mention how her expertise in Figma, which she discussed in her last interview, would be invaluable for the next version.",
           "nextStep": "Email"
         }
     `;
@@ -952,7 +955,7 @@ export const generateOfferLetter = async (candidateName: string, jobTitle: strin
 
 export const getNegotiationAdvice = async (offer: Offer, job: JobRequisition, candidate: Candidate): Promise<string[]> => {
     const prompt = `
-        You are an expert negotiation coach for tech recruiters. Analyze the following negotiation situation and provide 3-4 actionable, strategic bullet points of advice.
+        You are an expert negotiation coach and sales closer for tech recruiters. Analyze the following negotiation situation and provide 3-4 actionable, strategic bullet points for a "Closing Playbook".
 
         Context:
         - Job Title: ${job.title}
@@ -962,14 +965,14 @@ export const getNegotiationAdvice = async (offer: Offer, job: JobRequisition, ca
         - Negotiation History: ${JSON.stringify(offer.negotiationHistory)}
         - Competitive Intelligence (if known): ${offer.competitiveIntel?.join(', ') || 'None'}
 
-        Based on this data, provide concise, expert advice for the recruiter. Focus on how to structure the next counter-offer or how to respond to the candidate's last request. The output must be a JSON array of strings.
+        Based on this data, provide a tactical closing playbook. Focus on how to structure the next counter-offer, what to say, and how to create urgency. The output must be a JSON array of strings.
         
         Example output:
         [
-          "The candidate's counter of $185k is slightly above the max budget but justifiable given their 10 years of experience and the competing FAANG offer. Recommend getting CFO approval for an exception up to $182k.",
-          "Instead of matching the base salary, consider increasing the sign-on bonus from $10k to $15k. This is a one-time cost and keeps the base salary within the approved band for this level.",
-          "Emphasize the value of our equity grant and faster vesting schedule compared to the competitor's offer. This could be a key non-monetary differentiator.",
-          "Frame the next offer as the 'best and final' to create urgency and signal that there is little room for further negotiation."
+          "The candidate's counter of $185k is slightly above the max budget but justifiable given their 10 years of experience and the competing FAANG offer. Frame the next offer as 'best and final' to create urgency.",
+          "Instead of matching the base salary, lead with an increased sign-on bonus from $10k to $15k. This is a powerful one-time incentive that doesn't affect long-term salary bands.",
+          "Emphasize the value of our equity grant and faster vesting schedule compared to the competitor's offer. This is a key non-monetary differentiator you must highlight on the call.",
+          "Suggest a 15-minute coffee chat between the candidate and the hiring manager or CEO. This personal touch can be a powerful closing tool to build rapport and sell the vision."
         ]
     `;
 
