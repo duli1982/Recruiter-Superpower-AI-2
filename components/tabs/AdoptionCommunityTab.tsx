@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Card, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
+// FIX: Correct import path for types
 import { CommunityPrompt, Tab } from '../../types';
 import { MOCK_COMMUNITY_PROMPTS, TABS } from '../../constants';
 

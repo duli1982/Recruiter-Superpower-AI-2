@@ -1,227 +1,165 @@
 import React, { useState } from 'react';
 import { Card, CardHeader } from '../ui/Card';
-import { Spinner } from '../ui/Spinner';
-import { generatePredictiveAnalysis } from '../../services/geminiService';
-import { PredictiveAnalysisReport, JobRequisition, Candidate, SkillGap } from '../../types';
-import { MOCK_JOB_REQUISITIONS, MOCK_CANDIDATES } from '../../constants';
 import { Button } from '../ui/Button';
+import { Spinner } from '../ui/Spinner';
+import { analyzeCompetitorPostings } from '../../services/geminiService';
+import { CompetitiveJobAnalysis } from '../../types';
 
-// Icons
 const TrendingUpIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" /></svg>;
-const AlertTriangleIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>;
-const GlobeIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>;
-const RefreshCwIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 2v6h6"/><path d="M21 12A9 9 0 0 0 6 5.3L3 8"/><path d="M21 22v-6h-6"/><path d="M3 12a9 9 0 0 0 15 6.7l3-2.7"/></svg>;
-const DollarSignIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>;
-const CalendarDaysIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg>;
-const BriefcaseIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>;
-const PieChartIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>;
+const UsersIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>;
+const ClockIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
+const SearchIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>;
+const CheckCircle = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>;
 
-
-const REQUISITIONS_STORAGE_KEY = 'recruiter-ai-requisitions';
-const CANDIDATES_STORAGE_KEY = 'recruiter-ai-candidates';
-const PREDICTIVE_REPORT_CACHE_KEY = 'recruiter-ai-predictive-report';
-
-const getInitialData = <T,>(key: string, fallback: T): T => {
-    try {
-        const stored = localStorage.getItem(key);
-        if (stored) return JSON.parse(stored);
-    } catch (error) { console.error(`Failed to parse ${key} from localStorage`, error); }
-    return fallback;
-};
-
-const SeverityBadge: React.FC<{ severity: SkillGap['severity'] }> = ({ severity }) => {
-    const colors = {
-        'Critical': 'bg-red-500/20 text-red-300',
-        'Moderate': 'bg-yellow-500/20 text-yellow-300',
-        'Minor': 'bg-blue-500/20 text-blue-300',
-    };
-    return <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${colors[severity]}`}>{severity}</span>
-};
 
 export const PredictiveAnalyticsTab: React.FC = () => {
-    const [report, setReport] = useState<PredictiveAnalysisReport | null>(() => getInitialData(PREDICTIVE_REPORT_CACHE_KEY, null));
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState('');
+  const [jobTitle, setJobTitle] = useState('Senior Frontend Engineer');
+  const [competitors, setCompetitors] = useState('Meta, Apple, Netflix');
+  const [analysisResult, setAnalysisResult] = useState<CompetitiveJobAnalysis | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-    const handleGenerateReport = async () => {
-        setIsLoading(true);
-        setError('');
-        try {
-            const requisitions = getInitialData<JobRequisition[]>(REQUISITIONS_STORAGE_KEY, MOCK_JOB_REQUISITIONS);
-            const candidates = getInitialData<Candidate[]>(CANDIDATES_STORAGE_KEY, MOCK_CANDIDATES);
-            const analysisResult = await generatePredictiveAnalysis(requisitions, candidates);
-            
-            const newReport: PredictiveAnalysisReport = {
-                ...analysisResult,
-                generatedAt: new Date().toISOString(),
-            };
-            
-            setReport(newReport);
-            localStorage.setItem(PREDICTIVE_REPORT_CACHE_KEY, JSON.stringify(newReport));
+  const handleAnalyze = async () => {
+    if (!jobTitle || !competitors) {
+      setError('Please provide both a job title and competitors.');
+      return;
+    }
+    setIsLoading(true);
+    setError('');
+    setAnalysisResult(null);
+    try {
+      const result = await analyzeCompetitorPostings(jobTitle, competitors);
+      setAnalysisResult(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unknown error occurred during analysis.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "An unknown error occurred.");
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const renderContent = () => {
-        if (isLoading) {
-            return <Spinner text="Generating strategic forecast..." size="lg" />;
-        }
-
-        if (error) {
-            return (
-                 <div className="text-center">
-                    <p className="text-red-400 p-4 bg-red-900/20 rounded-lg">{error}</p>
-                    <Button onClick={handleGenerateReport} className="mt-4">Try Again</Button>
-                </div>
-            );
-        }
-
-        if (!report) {
-            return (
-                <Card className="text-center max-w-lg mx-auto">
-                    <CardHeader title="Generate Predictive Report" icon={<TrendingUpIcon />} description="Analyze historical hiring data and your current talent pool to forecast future needs, identify skill gaps, and get strategic market insights."/>
-                    <div className="mt-6">
-                        <Button onClick={handleGenerateReport} isLoading={isLoading}>Generate Report</Button>
-                    </div>
-                </Card>
-            );
-        }
-
-        return (
-            <div>
-                 <div className="flex flex-wrap gap-4 justify-between items-center mb-4">
-                    <p className="text-sm text-gray-400">
-                        Report generated: <span className="font-semibold text-gray-300">{new Date(report.generatedAt).toLocaleString()}</span>
-                    </p>
-                    <Button onClick={handleGenerateReport} isLoading={isLoading} variant="secondary" icon={<RefreshCwIcon className="h-4 w-4"/>}>
-                        Generate New Report
-                    </Button>
-                </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-                    {/* Left Column */}
-                    <div className="space-y-6">
-                        <Card>
-                            <CardHeader title="Hiring Demand Forecast (Next 6 Months)" icon={<TrendingUpIcon />} description="AI-predicted roles based on historical hiring velocity and departmental growth." />
-                            <div className="mt-4 space-y-4">
-                                {report.hiringForecasts.map(forecast => (
-                                    <div key={forecast.roleTitle} className="p-4 bg-gray-800 rounded-lg border border-gray-700">
-                                        <div className="flex justify-between items-start gap-4">
-                                            <div>
-                                                <h4 className="font-bold text-white">{forecast.roleTitle}</h4>
-                                                <p className="text-sm text-indigo-300">{forecast.department}</p>
-                                                <p className="text-sm text-gray-400 mt-2">{forecast.reasoning}</p>
-                                            </div>
-                                            <div className="text-right">
-                                                <p className="text-2xl font-bold text-indigo-400">{forecast.demandScore}</p>
-                                                <p className="text-xs text-gray-400">Demand</p>
-                                            </div>
-                                        </div>
-                                        <div className="w-full bg-gray-700 rounded-full h-2 mt-3">
-                                            <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full" style={{ width: `${forecast.demandScore}%` }}></div>
-                                        </div>
-                                        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-gray-700 pt-4">
-                                            <div className="flex items-center gap-2">
-                                                <CalendarDaysIcon className="h-5 w-5 text-gray-400" />
-                                                <div>
-                                                    <p className="text-xs text-gray-400">Predicted Time to Fill</p>
-                                                    <p className="font-semibold text-white">{forecast.predictedTimeToFill} days</p>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <DollarSignIcon className="h-5 w-5 text-gray-400" />
-                                                <div>
-                                                    <p className="text-xs text-gray-400">Est. Recruiting Cost</p>
-                                                    <p className="font-semibold text-white">${forecast.estimatedRecruitingCost.toLocaleString()}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </Card>
-                         <Card>
-                            <CardHeader title="Competitive Intelligence" icon={<BriefcaseIcon />} description="Insights into competitor hiring activities." />
-                            <div className="mt-4 space-y-3">
-                                {report.competitiveIntelligence.map((intel, i) => (
-                                     <div key={i} className="p-3 bg-gray-800 rounded-md">
-                                        <p className="font-semibold text-gray-200">{intel.observation}</p>
-                                        <p className="text-sm text-gray-400 mt-1"><strong className="text-gray-300">Implication:</strong> {intel.implication}</p>
-                                    </div>
-                                ))}
-                            </div>
-                        </Card>
-                        <Card>
-                            <CardHeader title="Strategic Market Insights" icon={<GlobeIcon />} description="External trends that may impact your hiring strategy." />
-                            <div className="mt-4 space-y-3">
-                                {report.marketTrends.map((trend, i) => (
-                                    <div key={i} className="p-3 bg-gray-800 rounded-md">
-                                        <p className="font-semibold text-gray-200">{trend.insight}</p>
-                                        <p className="text-sm text-gray-400 mt-1"><strong className="text-gray-300">Impact:</strong> {trend.impact}</p>
-                                    </div>
-                                ))}
-                            </div>
-                        </Card>
-                    </div>
-
-                    {/* Right Column */}
-                     <div className="space-y-6">
-                        <Card>
-                            <CardHeader title="Critical Skill Gaps" icon={<AlertTriangleIcon />} description="Skills to prioritize in proactive sourcing campaigns." />
-                            <div className="mt-4 space-y-3">
-                                {report.skillGaps.map(gap => (
-                                    <div key={gap.skill} className="p-3 bg-gray-800 rounded-md border border-gray-700">
-                                        <div className="flex justify-between items-center">
-                                            <h4 className="font-bold text-white">{gap.skill}</h4>
-                                            <SeverityBadge severity={gap.severity} />
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-2 mt-2 text-center text-xs">
-                                            <div className="bg-gray-700 p-2 rounded">
-                                                <p className="text-gray-400">Demand</p>
-                                                <p className="font-semibold text-white">{gap.demandLevel}</p>
-                                            </div>
-                                            <div className="bg-gray-700 p-2 rounded">
-                                                <p className="text-gray-400">Talent Pool Supply</p>
-                                                <p className="font-semibold text-white">{gap.supplyLevel}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </Card>
-                        <Card>
-                            <CardHeader title="Diversity Pipeline Analysis" icon={<PieChartIcon />} description="A high-level overview of diversity in your current talent pool." />
-                            <div className="mt-4 space-y-4">
-                                {report.diversityAnalysis.map((div, i) => {
-                                    const percentage = parseInt(div.value.replace('%', ''), 10);
-                                    return (
-                                        <div key={i} className="p-3 bg-gray-800 rounded-md">
-                                            <p className="font-semibold text-white">{div.metric} <span className="text-gray-400">({div.department})</span></p>
-                                            <div className="flex items-center gap-4 mt-2">
-                                                <div className="w-full bg-gray-700 rounded-full h-3">
-                                                    <div className="bg-gradient-to-r from-red-500 to-orange-500 h-3 rounded-full" style={{ width: `${percentage}%` }}></div>
-                                                </div>
-                                                <p className="text-lg font-bold text-red-400">{div.value}</p>
-                                            </div>
-                                            <p className="text-xs text-gray-400 mt-2 italic">Insight: {div.insight}</p>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </Card>
-                    </div>
-                </div>
+  return (
+    <div>
+      <h2 className="text-2xl font-bold text-white mb-6">Predictive Analytics</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <Card>
+          <CardHeader title="Hiring Forecast: Q4 2024" icon={<TrendingUpIcon />} />
+          <div className="mt-4 space-y-4">
+            <div className="flex justify-between items-baseline">
+              <span className="text-gray-300">Engineering</span>
+              <span className="font-bold text-2xl text-white">8-12 Hires</span>
             </div>
-        );
-    };
+            <div className="w-full bg-gray-700 rounded-full h-2.5">
+              <div className="bg-indigo-500 h-2.5 rounded-full" style={{ width: '75%' }}></div>
+            </div>
+            <div className="flex justify-between items-baseline">
+              <span className="text-gray-300">Product</span>
+              <span className="font-bold text-2xl text-white">3-5 Hires</span>
+            </div>
+            <div className="w-full bg-gray-700 rounded-full h-2.5">
+              <div className="bg-indigo-500 h-2.5 rounded-full" style={{ width: '40%' }}></div>
+            </div>
+            <div className="flex justify-between items-baseline">
+              <span className="text-gray-300">Design</span>
+              <span className="font-bold text-2xl text-white">1-2 Hires</span>
+            </div>
+            <div className="w-full bg-gray-700 rounded-full h-2.5">
+              <div className="bg-indigo-500 h-2.5 rounded-full" style={{ width: '20%' }}></div>
+            </div>
+          </div>
+        </Card>
 
-    return (
-        <div>
-            <h2 className="text-2xl font-bold text-white mb-6">Predictive Analytics Dashboard</h2>
-            {renderContent()}
+        <Card>
+          <CardHeader title="Talent Supply & Demand" icon={<UsersIcon />} />
+          <div className="mt-4 space-y-4 text-sm">
+            <p className="text-yellow-300 p-3 bg-yellow-900/30 rounded-lg">
+              <span className="font-bold">High Demand:</span> Senior Go Engineers. Talent supply is low, expect longer time-to-fill.
+            </p>
+            <p className="text-green-300 p-3 bg-green-900/30 rounded-lg">
+              <span className="font-bold">High Supply:</span> Junior React Developers. Talent pool is large, consider raising the bar for entry-level roles.
+            </p>
+            <p className="text-gray-300 p-3 bg-gray-800/80 rounded-lg">
+              <span className="font-bold">Trending Skill:</span> Rust. A growing number of candidates are listing Rust experience.
+            </p>
+          </div>
+        </Card>
+
+        <Card>
+          <CardHeader title="Attrition Risk Model" icon={<ClockIcon />} />
+          <div className="mt-4 space-y-4">
+            <div className="text-center p-8 border-2 border-dashed border-gray-700 rounded-lg">
+                <h3 className="text-lg font-semibold text-white">Coming Soon</h3>
+                <p className="text-gray-400 mt-2">AI-powered predictions to identify roles at high risk of turnover, allowing for proactive backfilling.</p>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      <Card className="mt-8">
+        <CardHeader title="Competitive Job Posting Analysis" icon={<SearchIcon />} description="Use AI to analyze competitor job postings and identify market trends." />
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+          <div className="md:col-span-1">
+            <label htmlFor="jobTitle" className="label">Job Title to Analyze</label>
+            <input type="text" id="jobTitle" value={jobTitle} onChange={e => setJobTitle(e.target.value)} className="input-field" />
+          </div>
+          <div className="md:col-span-1">
+            <label htmlFor="competitors" className="label">Competitors</label>
+            <input type="text" id="competitors" value={competitors} onChange={e => setCompetitors(e.target.value)} placeholder="e.g., Google, Meta, Apple" className="input-field" />
+          </div>
+          <div className="md:col-span-1">
+            <Button onClick={handleAnalyze} isLoading={isLoading} className="w-full">Analyze Postings</Button>
+          </div>
         </div>
-    );
+        
+        {isLoading && <Spinner text="Analyzing market data..." />}
+        {error && <p className="mt-4 text-red-400 text-sm p-3 bg-red-900/20 border border-red-800 rounded-md text-center">{error}</p>}
+        
+        {analysisResult && (
+          <div className="mt-6 border-t border-gray-700 pt-6 space-y-6">
+            <div>
+              <h4 className="font-semibold text-lg text-indigo-300 mb-2">Commonly Required Skills</h4>
+              <div className="flex flex-wrap gap-2">
+                {analysisResult.commonSkills.map(skill => <span key={skill} className="bg-gray-700 text-indigo-300 text-sm font-medium px-3 py-1 rounded-full">{skill}</span>)}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h4 className="font-semibold text-lg text-indigo-300 mb-2">Salary & Benefits Insights</h4>
+                <div className="p-4 bg-gray-800 rounded-lg border border-gray-700 space-y-3 text-sm">
+                  <p><strong className="text-gray-300">Compensation:</strong> {analysisResult.salaryInsights}</p>
+                  <p><strong className="text-gray-300">Perks:</strong> {analysisResult.benefitsInsights}</p>
+                </div>
+              </div>
+               <div>
+                <h4 className="font-semibold text-lg text-indigo-300 mb-2">Competitor-Specific Demands</h4>
+                <div className="space-y-3">
+                  {analysisResult.competitorSpecificSkills.map(item => (
+                    <div key={item.competitor} className="p-3 bg-gray-800 rounded-lg border border-gray-700">
+                      <p className="font-bold text-gray-200">{item.competitor}</p>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {item.skills.map(skill => <span key={skill} className="bg-gray-700 text-yellow-300 text-xs font-medium px-2 py-1 rounded-full">{skill}</span>)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="font-semibold text-lg text-indigo-300 mb-2">Strategic Takeaways</h4>
+              <ul className="space-y-2">
+                {analysisResult.strategicTakeaways.map((takeaway, index) => (
+                  <li key={index} className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-green-400 flex-shrink-0 mt-0.5" />
+                    <span className="text-gray-300">{takeaway}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+      </Card>
+      <style>{`.label { display: block; text-transform: uppercase; font-size: 0.75rem; font-medium; color: #9ca3af; margin-bottom: 0.25rem;} .input-field { display: block; width: 100%; background-color: #1f2937; border: 1px solid #4b5563; border-radius: 0.375rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); color: white; padding: 0.5rem 0.75rem;} .input-field:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 1px #6366f1; }`}</style>
+    </div>
+  );
 };

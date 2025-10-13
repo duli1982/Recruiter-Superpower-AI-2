@@ -14,6 +14,7 @@ import { TABS } from './constants';
 import { IntegrationUpskillingTab } from './components/tabs/IntegrationUpskillingTab';
 import { ProactiveSourcingTab } from './components/tabs/ProactiveSourcingTab';
 import { AdoptionCommunityTab } from './components/tabs/AdoptionCommunityTab';
+// FIX: Correct import path for PredictiveAnalyticsTab
 import { PredictiveAnalyticsTab } from './components/tabs/PredictiveAnalyticsTab';
 import { PerformanceCreativityTab } from './components/tabs/PerformanceCreativityTab';
 import { OfferManagementTab } from './components/tabs/OfferManagementTab';

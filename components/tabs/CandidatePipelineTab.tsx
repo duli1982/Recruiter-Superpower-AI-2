@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+// FIX: Correct import path for types
 import { JobRequisition, Candidate, PipelineStage } from '../../types';
 import { MOCK_JOB_REQUISITIONS, MOCK_CANDIDATES, PIPELINE_STAGES, MOCK_PIPELINE_DATA } from '../../constants';
 

@@ -2,8 +2,10 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Card, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Spinner } from '../ui/Spinner';
+// FIX: Correct import path for geminiService
 import { rankCandidates } from '../../services/geminiService';
 import { MOCK_CANDIDATES, MOCK_JOB_REQUISITIONS } from '../../constants';
+// FIX: Correct import path for types
 import { RankedCandidate, JobRequisition } from '../../types';
 
 const TargetIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>;

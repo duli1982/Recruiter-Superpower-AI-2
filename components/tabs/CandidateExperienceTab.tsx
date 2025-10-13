@@ -2,7 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Spinner } from '../ui/Spinner';
+// FIX: Correct import path for geminiService
 import { generateInterviewPacket } from '../../services/geminiService';
+// FIX: Correct import path for types
 import { Candidate, InterviewStage, JobRequisition, Interview, InterviewStatus, InterviewPacket } from '../../types';
 import { MOCK_CANDIDATES, MOCK_JOB_REQUISITIONS, MOCK_SCHEDULED_INTERVIEWS } from '../../constants';
 

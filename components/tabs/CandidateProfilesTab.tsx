@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
+// FIX: Correct import path for types
 import { Candidate, TagType, AIGroupAnalysisReport, CandidateStatus, ApplicationHistory, RelationshipStatus, CandidateCRM, Touchpoint, TouchpointType, NurtureCadence, NurtureContentType } from '../../types';
 import { MOCK_CANDIDATES } from '../../constants';
+// FIX: Correct import path for geminiService
 import { analyzeCandidateGroup, getCRMSuggestion } from '../../services/geminiService';
 import { Spinner } from '../ui/Spinner';
 

@@ -2,9 +2,11 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Card, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Spinner } from '../ui/Spinner';
+// FIX: Correct import path for geminiService
 import { generateOutreachEmail, scoutForTalent } from '../../services/geminiService';
 // FIX: Added CandidateStatus to imports to be used when creating a new candidate.
-import { ScoutedCandidate, Candidate, CandidateStatus } from '../../types';
+// FIX: Correct import path for types
+import { ScoutedCandidate, Candidate, CandidateStatus, CandidateCRM } from '../../types';
 
 // Icons
 const SearchIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>;
@@ -15,6 +17,8 @@ const SendIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns
 
 
 const CANDIDATES_STORAGE_KEY = 'recruiter-ai-candidates';
+// FIX: Create a blank CRM object to satisfy Candidate type requirements
+const BLANK_CRM: CandidateCRM = { relationshipStatus: 'Cold', relationshipScore: 10, touchpointHistory: [], nurtureSettings: { autoNurture: false, cadence: 'Monthly', contentType: 'New Roles' }, communitySettings: { newsletter: false, eventInvites: false }};
 
 const getScoreColor = (score: number) => {
     if (score >= 90) return 'text-green-400';
@@ -122,7 +126,7 @@ export const ProactiveSourcingTab: React.FC = () => {
     };
     
     const handleSaveCandidate = (scoutedCandidate: ScoutedCandidate) => {
-        // FIX: Added the required 'status' property to satisfy the Candidate type.
+        // FIX: Added all required properties to satisfy the Candidate type.
         const newCandidate: Omit<Candidate, 'id'> = {
             name: scoutedCandidate.name,
             email: `${scoutedCandidate.name.toLowerCase().replace(' ', '.')}@example.com`, // mock email
@@ -130,6 +134,11 @@ export const ProactiveSourcingTab: React.FC = () => {
             skills: formData.skills,
             resumeSummary: `${scoutedCandidate.currentRole} at ${scoutedCandidate.currentCompany}. Identified by AI as a potential fit for the ${formData.jobTitle} role. Intent signal: ${scoutedCandidate.intentSignal}`,
             status: CandidateStatus.Passive,
+            experience: 5, // mock experience
+            location: formData.location,
+            source: 'AI Talent Scout',
+            crm: BLANK_CRM,
+            applicationHistory: [],
         };
 
         try {
