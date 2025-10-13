@@ -3,7 +3,8 @@ import { Card, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Spinner } from '../ui/Spinner';
 import { generateOutreachEmail, scoutForTalent } from '../../services/geminiService';
-import { ScoutedCandidate, Candidate } from '../../types';
+// FIX: Added CandidateStatus to imports to be used when creating a new candidate.
+import { ScoutedCandidate, Candidate, CandidateStatus } from '../../types';
 
 // Icons
 const SearchIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>;
@@ -121,12 +122,14 @@ export const ProactiveSourcingTab: React.FC = () => {
     };
     
     const handleSaveCandidate = (scoutedCandidate: ScoutedCandidate) => {
+        // FIX: Added the required 'status' property to satisfy the Candidate type.
         const newCandidate: Omit<Candidate, 'id'> = {
             name: scoutedCandidate.name,
             email: `${scoutedCandidate.name.toLowerCase().replace(' ', '.')}@example.com`, // mock email
             phone: '123-456-7890', // mock phone
             skills: formData.skills,
-            resumeSummary: `${scoutedCandidate.currentRole} at ${scoutedCandidate.currentCompany}. Identified by AI as a potential fit for the ${formData.jobTitle} role. Intent signal: ${scoutedCandidate.intentSignal}`
+            resumeSummary: `${scoutedCandidate.currentRole} at ${scoutedCandidate.currentCompany}. Identified by AI as a potential fit for the ${formData.jobTitle} role. Intent signal: ${scoutedCandidate.intentSignal}`,
+            status: CandidateStatus.Passive,
         };
 
         try {

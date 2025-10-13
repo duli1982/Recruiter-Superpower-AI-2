@@ -2,13 +2,18 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Card, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Spinner } from '../ui/Spinner';
-import { JobRequisition, JobStatus } from '../../types';
+import { JobRequisition, JobStatus, ApprovalStep } from '../../types';
 import { MOCK_JOB_REQUISITIONS } from '../../constants';
 import { getJobRequisitionSuggestion } from '../../services/geminiService';
 
 const PlusIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>;
 const EditIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>;
 const LightbulbIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15.09 16.05A6.5 6.5 0 0 1 8.94 9.9M9 9h.01M4.93 4.93l.01.01M2 12h.01M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0zM12 2v.01M19.07 4.93l-.01.01M22 12h-.01M19.07 19.07l-.01-.01M12 22v-.01" /></svg>;
+const AlertTriangleIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>;
+const CheckCircleIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>;
+const ClockIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
+const XCircleIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>;
+
 
 const STORAGE_KEY = 'recruiter-ai-requisitions';
 
@@ -20,16 +25,38 @@ const getInitialRequisitions = (): JobRequisition[] => {
     return MOCK_JOB_REQUISITIONS;
 };
 
-const BLANK_REQUISITION: Omit<JobRequisition, 'id'> = { title: '', department: '', status: JobStatus.Open, requiredSkills: [], description: '', applications: 0 };
+const BLANK_REQUISITION: Omit<JobRequisition, 'id' | 'applications' | 'createdAt'> = { 
+    title: '', 
+    department: '', 
+    status: JobStatus.PendingApproval, 
+    requiredSkills: [], 
+    description: '', 
+    hiringManager: '',
+    budget: { salaryMin: 0, salaryMax: 0, currency: 'USD', budgetCode: ''},
+    approvalWorkflow: [
+        { stage: 'Hiring Manager Approval', approver: 'TBD', status: 'Pending'},
+        { stage: 'Finance Approval', approver: 'Alex Rivera', status: 'Pending'},
+        { stage: 'VP Approval', approver: 'Jordan Lee', status: 'Pending'},
+    ]
+};
 
 const StatusBadge = ({ status }: { status: JobStatus }) => {
     const colorClasses = {
         [JobStatus.Open]: 'bg-green-500/20 text-green-300 ring-green-500/30',
         [JobStatus.OnHold]: 'bg-yellow-500/20 text-yellow-300 ring-yellow-500/30',
         [JobStatus.Closed]: 'bg-red-500/20 text-red-300 ring-red-500/30',
+        [JobStatus.PendingApproval]: 'bg-blue-500/20 text-blue-300 ring-blue-500/30',
     };
     return <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ring-1 ring-inset ${colorClasses[status]}`}>{status}</span>;
 };
+
+const getDaysSince = (dateString: string) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const diffTime = Math.abs(today.getTime() - date.getTime());
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+};
+
 
 export const JobRequisitionsTab: React.FC = () => {
     const [requisitions, setRequisitions] = useState<JobRequisition[]>(getInitialRequisitions);
@@ -38,10 +65,13 @@ export const JobRequisitionsTab: React.FC = () => {
     const [editingReq, setEditingReq] = useState<Omit<JobRequisition, 'id'> | JobRequisition | null>(null);
     const [aiSuggestion, setAiSuggestion] = useState<string>('');
     const [isLoadingSuggestion, setIsLoadingSuggestion] = useState<boolean>(false);
+    const [selectedReqId, setSelectedReqId] = useState<number | null>(requisitions[0]?.id || null);
 
     useEffect(() => {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(requisitions));
     }, [requisitions]);
+    
+    const selectedReq = useMemo(() => requisitions.find(r => r.id === selectedReqId), [requisitions, selectedReqId]);
 
     const departments = useMemo(() => ['All', ...Array.from(new Set(requisitions.map(r => r.department)))], [requisitions]);
 
@@ -79,7 +109,14 @@ export const JobRequisitionsTab: React.FC = () => {
             setRequisitions(prev => prev.map(r => r.id === (editingReq as JobRequisition).id ? (editingReq as JobRequisition) : r));
         } else { // Creating
             const newId = requisitions.length > 0 ? Math.max(...requisitions.map(r => r.id)) + 1 : 1;
-            setRequisitions(prev => [...prev, { id: newId, ...(editingReq as Omit<JobRequisition, 'id'>) }]);
+            const newReq = { 
+                id: newId, 
+                ...editingReq,
+                createdAt: new Date().toISOString(),
+                applications: 0
+            } as JobRequisition;
+            setRequisitions(prev => [newReq, ...prev]);
+            setSelectedReqId(newId);
         }
         setIsModalOpen(false);
         setEditingReq(null);
@@ -87,125 +124,168 @@ export const JobRequisitionsTab: React.FC = () => {
     
     const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        setEditingReq(prev => prev ? { ...prev, [name]: name === 'requiredSkills' ? value.split(',').map(s => s.trim()) : value } : null);
+        if (name.startsWith('budget.')) {
+            const field = name.split('.')[1];
+            setEditingReq(prev => prev ? {
+                ...prev,
+                budget: { ...prev.budget, [field]: field.includes('salary') ? Number(value) : value }
+            } : null);
+        } else {
+            setEditingReq(prev => prev ? { ...prev, [name]: name === 'requiredSkills' ? value.split(',').map(s => s.trim()) : value } : null);
+        }
+    };
+    
+    const ApprovalStepDisplay: React.FC<{ step: ApprovalStep }> = ({ step }) => {
+        const icons = {
+            'Approved': <CheckCircleIcon className="h-5 w-5 text-green-400" />,
+            'Pending': <ClockIcon className="h-5 w-5 text-yellow-400" />,
+            'Rejected': <XCircleIcon className="h-5 w-5 text-red-400" />,
+        };
+        const statusColors = {
+            'Approved': 'text-gray-300',
+            'Pending': 'text-yellow-300 animate-pulse',
+            'Rejected': 'text-red-300',
+        };
+
+        return (
+            <div className="flex items-start gap-4">
+                <div className="flex flex-col items-center">
+                    {icons[step.status]}
+                    <div className="h-full w-px bg-gray-600 my-1 min-h-[2rem]"></div>
+                </div>
+                <div>
+                    <p className={`font-semibold ${statusColors[step.status]}`}>{step.stage}</p>
+                    <p className="text-sm text-gray-400">{step.approver}</p>
+                    {step.timestamp && <p className="text-xs text-gray-500">{new Date(step.timestamp).toLocaleDateString()}</p>}
+                </div>
+            </div>
+        );
     };
 
     return (
-        <div>
-            <h2 className="text-2xl font-bold text-white mb-6">Manage Requisitions</h2>
-
+        <div className="h-[calc(100vh-11rem)]">
+            <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold text-white">Manage Requisitions</h2>
+                <Button onClick={() => { setEditingReq(BLANK_REQUISITION); setIsModalOpen(true); }} icon={<PlusIcon />}>Create</Button>
+            </div>
             {(aiSuggestion || isLoadingSuggestion) && (
-                <Card className="mb-6 bg-indigo-900/50 border-indigo-700">
-                    <div className="flex items-start gap-3">
+                <Card className="mb-4 bg-indigo-900/50 border-indigo-700">
+                     <div className="flex items-start gap-3">
                         <LightbulbIcon className="h-5 w-5 text-indigo-400 flex-shrink-0 mt-1" />
                         <div>
                             <h4 className="font-semibold text-indigo-300">AI Suggestion</h4>
-                            {isLoadingSuggestion && <Spinner size="sm" text="Generating insight..." />}
-                            {aiSuggestion && <p className="text-sm text-indigo-200 mt-1">{aiSuggestion}</p>}
+                            {isLoadingSuggestion ? <Spinner size="sm" /> : <p className="text-sm text-indigo-200 mt-1">{aiSuggestion}</p>}
                         </div>
                     </div>
                 </Card>
             )}
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <Card className="lg:col-span-2">
-                    <div className="flex flex-wrap gap-4 items-center mb-4">
-                        <div className="flex">
-                            <div>
-                                <label htmlFor="statusFilter" className="text-xs text-gray-400">Status</label>
-                                <select id="statusFilter" onChange={e => setFilters(f => ({ ...f, status: e.target.value }))} className="input-field-sm mt-1 select-custom-arrow rounded-r-none">
-                                    <option>All</option>
-                                    {Object.values(JobStatus).map(s => <option key={s}>{s}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label htmlFor="deptFilter" className="text-xs text-gray-400">Department</label>
-                                <select id="deptFilter" onChange={e => setFilters(f => ({ ...f, department: e.target.value }))} className="input-field-sm mt-1 select-custom-arrow rounded-l-none -ml-px">
-                                    {departments.map(d => <option key={d}>{d}</option>)}
-                                </select>
-                            </div>
-                        </div>
-                        <div className="ml-auto">
-                           <Button onClick={() => { setEditingReq(BLANK_REQUISITION); setIsModalOpen(true); }} icon={<PlusIcon />}>Create</Button>
-                        </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+                <Card className="lg:col-span-1 flex flex-col h-full">
+                    <CardHeader title="Requisition List" />
+                     <div className="flex gap-2 mb-4">
+                        <select onChange={e => setFilters(f => ({ ...f, status: e.target.value }))} className="input-field-sm select-custom-arrow flex-1">
+                            <option value="All">All Statuses</option>
+                            {Object.values(JobStatus).map(s => <option key={s}>{s}</option>)}
+                        </select>
+                        <select onChange={e => setFilters(f => ({ ...f, department: e.target.value }))} className="input-field-sm select-custom-arrow flex-1">
+                            {departments.map(d => <option key={d}>{d}</option>)}
+                        </select>
                     </div>
-
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-700">
-                           {/* ... table content ... */}
-                           <thead className="bg-gray-800">
-                                <tr>
-                                    <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-white sm:pl-3">Role</th>
-                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-white">Status</th>
-                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-white">Skills</th>
-                                    <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-3"></th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-800">
-                                {filteredRequisitions.map(req => (
-                                    <tr key={req.id}>
-                                        <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm sm:pl-3">
-                                            <div className="font-medium text-white">{req.title}</div>
-                                            <div className="text-gray-400">{req.department}</div>
-                                        </td>
-                                        <td className="whitespace-nowrap px-3 py-4 text-sm">
-                                            <select value={req.status} onChange={e => handleStatusChange(req.id, e.target.value as JobStatus)} className="input-field-sm bg-gray-900 border-gray-600 select-custom-arrow">
-                                                {Object.values(JobStatus).map(s => <option key={s} value={s}>{s}</option>)}
-                                            </select>
-                                        </td>
-                                        <td className="px-3 py-4 text-sm text-gray-300">
-                                            <div className="flex flex-wrap gap-1 max-w-xs">
-                                                {req.requiredSkills.slice(0, 3).map(s => <span key={s} className="bg-gray-700 text-indigo-300 text-xs font-medium px-2 py-0.5 rounded-full">{s}</span>)}
-                                            </div>
-                                        </td>
-                                        <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-3">
-                                            <button onClick={() => { setEditingReq(req); setIsModalOpen(true); }} className="text-indigo-400 hover:text-indigo-300"><EditIcon className="h-4 w-4" /></button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                    <div className="overflow-y-auto space-y-2 flex-grow -mr-4 pr-3">
+                        {filteredRequisitions.map(req => {
+                            const daysOpen = getDaysSince(req.createdAt);
+                            const isStale = daysOpen > 60 && req.status === 'Open';
+                            return (
+                                <div key={req.id} onClick={() => setSelectedReqId(req.id)} className={`p-3 rounded-lg cursor-pointer transition-colors ${selectedReqId === req.id ? 'bg-indigo-600/30 border-indigo-500' : 'bg-gray-800 hover:bg-gray-700/50 border-gray-700'} border`}>
+                                    <div className="flex justify-between items-start">
+                                        <p className="font-semibold text-white truncate pr-2">{req.title}</p>
+                                        <StatusBadge status={req.status} />
+                                    </div>
+                                    <div className="flex justify-between items-center mt-2 text-xs">
+                                        <p className="text-gray-400">{req.department}</p>
+                                        <div className={`flex items-center gap-1 ${isStale ? 'text-yellow-400' : 'text-gray-500'}`}>
+                                            {isStale && <AlertTriangleIcon className="h-3 w-3"/>}
+                                            <span>{daysOpen} days old</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
                 </Card>
-                <Card>
-                    <CardHeader title="Job Metrics"/>
-                     <p className="text-sm text-gray-400 mb-4">Total applications per open role.</p>
-                     <div className="space-y-3">
-                        {requisitions.filter(r => r.status === JobStatus.Open).map(req => (
-                            <div key={req.id}>
-                                <div className="flex justify-between text-sm mb-1">
-                                    <span className="text-gray-300">{req.title}</span>
-                                    <span className="font-medium text-white">{req.applications}</span>
+                <Card className="lg:col-span-2 flex flex-col h-full">
+                    {selectedReq ? (
+                         <div className="flex flex-col h-full">
+                            <div className="flex justify-between items-start mb-4">
+                                <div>
+                                    <h3 className="text-xl font-bold text-white">{selectedReq.title}</h3>
+                                    <p className="text-sm text-indigo-400">{selectedReq.department}</p>
                                 </div>
-                                <div className="w-full bg-gray-700 rounded-full h-2">
-                                    <div className="bg-indigo-500 h-2 rounded-full" style={{ width: `${(req.applications / Math.max(...requisitions.map(r => r.applications)))*100}%`}}></div>
+                                <Button onClick={() => { setEditingReq(selectedReq); setIsModalOpen(true); }} variant="secondary" icon={<EditIcon className="h-4 w-4"/>}>Edit</Button>
+                            </div>
+                            <div className="overflow-y-auto flex-grow grid grid-cols-1 md:grid-cols-3 gap-6 -mr-4 pr-3">
+                                <div className="md:col-span-2 space-y-4">
+                                    <div>
+                                        <h4 className="font-semibold text-gray-300 mb-1">Description</h4>
+                                        <p className="text-sm text-gray-400 whitespace-pre-wrap">{selectedReq.description}</p>
+                                    </div>
+                                    <div>
+                                        <h4 className="font-semibold text-gray-300 mb-1">Required Skills</h4>
+                                        <div className="flex flex-wrap gap-2">
+                                            {selectedReq.requiredSkills.map(s => <span key={s} className="bg-gray-700 text-indigo-300 text-xs font-medium px-2.5 py-1 rounded-full">{s}</span>)}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h4 className="font-semibold text-gray-300 mb-1">Budget</h4>
+                                        <div className="text-sm text-gray-400 bg-gray-800 p-3 rounded-lg border border-gray-700">
+                                            <p><strong>Salary Range:</strong> ${selectedReq.budget.salaryMin.toLocaleString()} - ${selectedReq.budget.salaryMax.toLocaleString()} {selectedReq.budget.currency}</p>
+                                            <p><strong>Budget Code:</strong> {selectedReq.budget.budgetCode}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="md:col-span-1">
+                                    <h4 className="font-semibold text-gray-300 mb-2">Approval Workflow</h4>
+                                    <div className="relative">
+                                        {selectedReq.approvalWorkflow.map((step, index) => (
+                                            <div key={index} className={index === selectedReq.approvalWorkflow.length -1 ? 'pb-0' : 'pb-2'}>
+                                                <ApprovalStepDisplay step={step} />
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
-                        ))}
-                     </div>
+                        </div>
+                    ) : (
+                        <div className="flex items-center justify-center h-full text-center text-gray-500">
+                            <p>Select a requisition to see details.</p>
+                        </div>
+                    )}
                 </Card>
             </div>
             {isModalOpen && editingReq && (
-                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center" onClick={() => setIsModalOpen(false)}>
-                    <form onSubmit={handleSave} className="bg-gray-900 border border-gray-700 rounded-lg shadow-xl w-full max-w-lg p-6 space-y-4" onClick={e => e.stopPropagation()}>
-                        <h3 className="text-lg font-bold text-white">{'id' in editingReq ? 'Edit Requisition' : 'Create Requisition'}</h3>
-                        <div>
-                            <label htmlFor="title" className="block text-sm font-medium text-gray-300">Job Title</label>
-                            <input type="text" name="title" value={editingReq.title} onChange={handleFormChange} className="mt-1 input-field" required/>
+                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setIsModalOpen(false)}>
+                    <form onSubmit={handleSave} className="bg-gray-900 border border-gray-700 rounded-lg shadow-xl w-full max-w-2xl" onClick={e => e.stopPropagation()}>
+                        <div className="p-6">
+                            <h3 className="text-lg font-bold text-white mb-4">{'id' in editingReq ? 'Edit Requisition' : 'Create Requisition'}</h3>
+                             <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-3 -mr-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div><label className="label">Job Title</label><input type="text" name="title" value={editingReq.title} onChange={handleFormChange} className="input-field" required/></div>
+                                    <div><label className="label">Department</label><input type="text" name="department" value={editingReq.department} onChange={handleFormChange} className="input-field" required/></div>
+                                </div>
+                                <div><label className="label">Hiring Manager</label><input type="text" name="hiringManager" value={editingReq.hiringManager} onChange={handleFormChange} className="input-field" required/></div>
+                                <div className="border-t border-b border-gray-700 py-4">
+                                    <h4 className="text-md font-semibold text-gray-200 mb-2">Budget</h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div><label className="label">Min Salary</label><input type="number" name="budget.salaryMin" value={editingReq.budget.salaryMin} onChange={handleFormChange} className="input-field"/></div>
+                                        <div><label className="label">Max Salary</label><input type="number" name="budget.salaryMax" value={editingReq.budget.salaryMax} onChange={handleFormChange} className="input-field"/></div>
+                                    </div>
+                                    <div className="mt-4"><label className="label">Budget Code</label><input type="text" name="budget.budgetCode" value={editingReq.budget.budgetCode} onChange={handleFormChange} className="input-field"/></div>
+                                </div>
+                                <div><label className="label">Required Skills (comma-separated)</label><input type="text" name="requiredSkills" value={Array.isArray(editingReq.requiredSkills) ? editingReq.requiredSkills.join(', ') : ''} onChange={handleFormChange} className="input-field" /></div>
+                                <div><label className="label">Description</label><textarea name="description" rows={4} value={editingReq.description} onChange={handleFormChange} className="input-field"></textarea></div>
+                            </div>
                         </div>
-                        <div>
-                            <label htmlFor="department" className="block text-sm font-medium text-gray-300">Department</label>
-                            <input type="text" name="department" value={editingReq.department} onChange={handleFormChange} className="mt-1 input-field" required/>
-                        </div>
-                         <div>
-                            <label htmlFor="requiredSkills" className="block text-sm font-medium text-gray-300">Required Skills (comma-separated)</label>
-                            <input type="text" name="requiredSkills" value={Array.isArray(editingReq.requiredSkills) ? editingReq.requiredSkills.join(', ') : ''} onChange={handleFormChange} className="mt-1 input-field" />
-                        </div>
-                        <div>
-                            <label htmlFor="description" className="block text-sm font-medium text-gray-300">Description</label>
-                            <textarea name="description" rows={4} value={editingReq.description} onChange={handleFormChange} className="mt-1 input-field"></textarea>
-                        </div>
-                        <div className="mt-6 pt-4 border-t border-gray-700 flex justify-end gap-3">
+                        <div className="p-6 bg-gray-800/50 rounded-b-lg flex justify-end gap-3">
                            <Button type="button" variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button>
                            <Button type="submit">Save Requisition</Button>
                        </div>
@@ -213,19 +293,21 @@ export const JobRequisitionsTab: React.FC = () => {
                 </div>
             )}
             <style>{`
-                .input-field { display: block; width: 100%; background-color: #1f2937; border: 1px solid #4b5563; border-radius: 0.375rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); color: white; padding: 0.5rem 0.75rem; }
-                .input-field:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 1px #6366f1; }
-                .input-field-sm { display: block; width: 100%; background-color: #1f2937; border: 1px solid #4b5563; border-radius: 0.375rem; color: white; padding: 0.25rem 0.5rem; font-size: 0.875rem; }
+                .label { display: block; text-transform: uppercase; font-size: 0.75rem; font-weight: 500; color: #9ca3af; margin-bottom: 0.25rem;}
+                .input-field, .input-field-sm { display: block; width: 100%; background-color: #1f2937; border: 1px solid #4b5563; border-radius: 0.375rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); color: white; }
+                .input-field { padding: 0.5rem 0.75rem; }
+                .input-field-sm { padding: 0.375rem 0.625rem; font-size: 0.875rem; }
+                .input-field:focus, .input-field-sm:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 1px #6366f1; }
                 .select-custom-arrow {
-                    -webkit-appearance: none;
-                    -moz-appearance: none;
-                    appearance: none;
+                    -webkit-appearance: none; -moz-appearance: none; appearance: none;
                     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-                    background-position: right 0.5rem center;
-                    background-repeat: no-repeat;
-                    background-size: 1.5em 1.5em;
-                    padding-right: 2.5rem;
+                    background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.5em 1.5em; padding-right: 2.5rem;
                 }
+                 /* Custom scrollbar for content areas */
+                .overflow-y-auto::-webkit-scrollbar { width: 6px; }
+                .overflow-y-auto::-webkit-scrollbar-track { background: transparent; }
+                .overflow-y-auto::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 3px; }
+                .overflow-y-auto::-webkit-scrollbar-thumb:hover { background: #6b7280; }
             `}</style>
         </div>
     );

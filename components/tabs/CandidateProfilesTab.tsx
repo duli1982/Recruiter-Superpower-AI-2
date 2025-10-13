@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
-import { Candidate, TagType, AIGroupAnalysisReport } from '../../types';
+import { Candidate, TagType, AIGroupAnalysisReport, CandidateStatus, ApplicationHistory } from '../../types';
 import { MOCK_CANDIDATES } from '../../constants';
 import { analyzeCandidateGroup } from '../../services/geminiService';
 import { Spinner } from '../ui/Spinner';
@@ -12,7 +12,8 @@ const TrashIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmln
 const FilterIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" /></svg>;
 const BookmarkIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>;
 const SparklesIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 3L8 8l-5 2 5 2 2 5 2-5 5-2-5-2-2-5zM18 13l-1.5 3-3 1.5 3 1.5 1.5 3 1.5-3 3-1.5-3-1.5-1.5-3z"/></svg>;
-
+const DollarSignIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>;
+const BriefcaseIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>;
 
 const STORAGE_KEY = 'recruiter-ai-candidates';
 const SAVED_SEARCHES_KEY = 'recruiter-ai-saved-searches';
@@ -24,6 +25,9 @@ interface Filters {
     minExperience: number;
     maxExperience: number;
     tag: string;
+    status: string;
+    source: string;
+    visaStatus: string;
 }
 
 interface SavedSearch {
@@ -39,8 +43,8 @@ const getInitialData = <T,>(key: string, fallback: T): T => {
     return fallback;
 };
 
-const BLANK_FILTERS: Filters = { searchQuery: '', skills: '', location: '', minExperience: 0, maxExperience: 20, tag: 'All' };
-const BLANK_CANDIDATE: Omit<Candidate, 'id'> = { name: '', email: '', phone: '', skills: '', resumeSummary: '', experience: 0, location: '', salaryExpectation: 0, availability: 'Immediate', tags: [] };
+const BLANK_FILTERS: Filters = { searchQuery: '', skills: '', location: '', minExperience: 0, maxExperience: 20, tag: 'All', status: 'All', source: '', visaStatus: '' };
+const BLANK_CANDIDATE: Omit<Candidate, 'id'> = { name: '', email: '', phone: '', skills: '', resumeSummary: '', experience: 0, location: '', availability: 'Immediate', tags: [], status: CandidateStatus.Passive, lastContactDate: '', source: '', compensation: { currentSalary: 0, salaryExpectation: 0, negotiationNotes: ''}, visaStatus: '', applicationHistory: [] };
 
 export const CandidateProfilesTab: React.FC = () => {
     const [candidates, setCandidates] = useState<Candidate[]>(() => getInitialData(STORAGE_KEY, MOCK_CANDIDATES));
@@ -81,8 +85,11 @@ export const CandidateProfilesTab: React.FC = () => {
             const locationMatch = filters.location === '' || c.location?.toLowerCase().includes(filters.location.toLowerCase());
             const expMatch = (c.experience ?? 0) >= filters.minExperience && (c.experience ?? 0) <= filters.maxExperience;
             const tagMatch = filters.tag === 'All' || c.tags?.includes(filters.tag);
+            const statusMatch = filters.status === 'All' || c.status === filters.status;
+            const sourceMatch = filters.source === '' || c.source?.toLowerCase().includes(filters.source.toLowerCase());
+            const visaMatch = filters.visaStatus === '' || c.visaStatus?.toLowerCase().includes(filters.visaStatus.toLowerCase());
             
-            return searchMatch && skillsMatch && locationMatch && expMatch && tagMatch;
+            return searchMatch && skillsMatch && locationMatch && expMatch && tagMatch && statusMatch && sourceMatch && visaMatch;
         });
     }, [candidates, filters]);
     
@@ -146,10 +153,21 @@ export const CandidateProfilesTab: React.FC = () => {
 
     const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        if (name === 'tags') {
+        const inputType = (e.target as HTMLInputElement).type;
+
+        if (name.startsWith('compensation.')) {
+            const field = name.split('.')[1];
+            setFormState(prev => ({
+                ...prev,
+                compensation: {
+                    ...prev.compensation,
+                    [field]: inputType === 'number' ? (value ? Number(value) : undefined) : value
+                }
+            }));
+        } else if (name === 'tags') {
             setFormState(prev => ({ ...prev, [name]: value.split(',').map(t => t.trim()) }));
         } else {
-            setFormState(prev => ({ ...prev, [name]: value }));
+            setFormState(prev => ({ ...prev, [name]: inputType === 'number' ? (value ? Number(value) : undefined) : value }));
         }
     };
     
@@ -206,17 +224,46 @@ export const CandidateProfilesTab: React.FC = () => {
         }
     };
 
-    interface TagPillProps {
-        tag: string;
-    }
+    const StatusBadge: React.FC<{ status: CandidateStatus }> = ({ status }) => {
+        const colors = {
+            [CandidateStatus.Active]: 'bg-green-500/20 text-green-300',
+            [CandidateStatus.Passive]: 'bg-blue-500/20 text-blue-300',
+            [CandidateStatus.Interviewing]: 'bg-purple-500/20 text-purple-300',
+            [CandidateStatus.Hired]: 'bg-teal-500/20 text-teal-300',
+            [CandidateStatus.DoNotContact]: 'bg-red-500/20 text-red-300',
+        };
+        const colorClass = colors[status] || 'bg-gray-700 text-gray-300';
+        return <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${colorClass}`}>{status}</span>;
+    };
 
-    const TagPill: React.FC<TagPillProps> = ({ tag }) => {
+    const ApplicationHistoryItem: React.FC<{ item: ApplicationHistory }> = ({ item }) => {
+        const outcomeColors = {
+            'Hired': 'text-green-400 border-green-700',
+            'In Progress': 'text-blue-400 border-blue-700',
+            'Rejected': 'text-red-400 border-red-700',
+            'Withdrew': 'text-yellow-400 border-yellow-700',
+        };
+        return (
+            <div className="flex gap-4">
+                <div className="flex flex-col items-center">
+                    <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
+                    <div className="w-px h-full bg-gray-700"></div>
+                </div>
+                <div>
+                    <p className="font-semibold text-gray-200">{item.jobTitle}</p>
+                    <p className="text-sm text-gray-400">Applied: {new Date(item.dateApplied).toLocaleDateString()}</p>
+                    <p className={`text-sm font-medium ${outcomeColors[item.outcome]}`}>Outcome: {item.outcome} <span className="text-gray-400 font-normal">(Stage: {item.stageReached})</span></p>
+                </div>
+            </div>
+        );
+    };
+
+    const TagPill: React.FC<{ tag: string }> = ({ tag }) => {
         const colors: { [key: string]: string } = {
             [TagType.Internal]: 'bg-blue-500/20 text-blue-300',
             [TagType.Passive]: 'bg-purple-500/20 text-purple-300',
             [TagType.Referral]: 'bg-teal-500/20 text-teal-300',
             [TagType.HighPriority]: 'bg-yellow-500/20 text-yellow-300',
-            [TagType.DoNotContact]: 'bg-red-500/20 text-red-300',
         };
         const colorClass = colors[tag] || 'bg-gray-700 text-gray-300';
         return <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${colorClass}`}>{tag}</span>
@@ -241,20 +288,35 @@ export const CandidateProfilesTab: React.FC = () => {
                     {showFilters && (
                         <div className="p-3 bg-gray-800 rounded-md mb-3 space-y-3">
                             <h4 className="text-sm font-semibold">Advanced Filters</h4>
+                            <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label className="text-xs text-gray-400">Status</label>
+                                    <select name="status" value={filters.status} onChange={handleFilterChange} className="input-field-sm mt-1">
+                                        <option>All</option>
+                                        {Object.values(CandidateStatus).map(s => <option key={s}>{s}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-xs text-gray-400">Tag</label>
+                                    <select name="tag" value={filters.tag} onChange={handleFilterChange} className="input-field-sm mt-1">
+                                        <option>All</option>
+                                        {Object.values(TagType).map(t => <option key={t}>{t}</option>)}
+                                    </select>
+                                </div>
+                            </div>
                             <div>
                                 <label className="text-xs text-gray-400">Skills (comma-separated)</label>
                                 <input type="text" name="skills" placeholder="e.g. react, node" value={filters.skills} onChange={handleFilterChange} className="input-field-sm mt-1"/>
                             </div>
-                            <div>
-                                <label className="text-xs text-gray-400">Location</label>
-                                <input type="text" name="location" placeholder="e.g. remote, ny" value={filters.location} onChange={handleFilterChange} className="input-field-sm mt-1"/>
-                            </div>
-                            <div>
-                                <label className="text-xs text-gray-400">Tag</label>
-                                <select name="tag" value={filters.tag} onChange={handleFilterChange} className="input-field-sm mt-1">
-                                    <option>All</option>
-                                    {Object.values(TagType).map(t => <option key={t}>{t}</option>)}
-                                </select>
+                            <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label className="text-xs text-gray-400">Source</label>
+                                    <input type="text" name="source" placeholder="e.g. linkedin" value={filters.source} onChange={handleFilterChange} className="input-field-sm mt-1"/>
+                                </div>
+                                 <div>
+                                    <label className="text-xs text-gray-400">Visa Status</label>
+                                    <input type="text" name="visaStatus" placeholder="e.g. h1b" value={filters.visaStatus} onChange={handleFilterChange} className="input-field-sm mt-1"/>
+                                </div>
                             </div>
                              <div>
                                 <label className="text-xs text-gray-400">Experience (Years: {filters.minExperience}-{filters.maxExperience})</label>
@@ -338,13 +400,29 @@ export const CandidateProfilesTab: React.FC = () => {
                                     <div><label className="label">Phone</label><input type="tel" name="phone" value={formState.phone} onChange={handleFormChange} className="input-field" /></div>
                                     <div><label className="label">Location</label><input type="text" name="location" value={formState.location || ''} onChange={handleFormChange} className="input-field" /></div>
                                 </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div><label className="label">Status</label>
+                                        <select name="status" value={formState.status} onChange={handleFormChange} className="input-field">
+                                            {Object.values(CandidateStatus).map(s => <option key={s} value={s}>{s}</option>)}
+                                        </select>
+                                    </div>
+                                    <div><label className="label">Last Contact Date</label><input type="date" name="lastContactDate" value={formState.lastContactDate?.split('T')[0] || ''} onChange={handleFormChange} className="input-field" /></div>
+                                </div>
                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div><label className="label">Experience (Years)</label><input type="number" name="experience" value={formState.experience || 0} onChange={handleFormChange} className="input-field" /></div>
-                                    <div><label className="label">Availability</label><input type="text" name="availability" value={formState.availability || ''} onChange={handleFormChange} className="input-field" /></div>
+                                    <div><label className="label">Source</label><input type="text" name="source" value={formState.source || ''} onChange={handleFormChange} className="input-field" /></div>
+                                    <div><label className="label">Visa Status</label><input type="text" name="visaStatus" value={formState.visaStatus || ''} onChange={handleFormChange} className="input-field" /></div>
+                                </div>
+                                <div className="p-3 border border-gray-700 rounded-lg">
+                                    <h4 className="label text-gray-200">Compensation</h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
+                                        <div><label className="label">Current Salary</label><input type="number" name="compensation.currentSalary" value={formState.compensation?.currentSalary || ''} onChange={handleFormChange} className="input-field" /></div>
+                                        <div><label className="label">Expected Salary</label><input type="number" name="compensation.salaryExpectation" value={formState.compensation?.salaryExpectation || ''} onChange={handleFormChange} className="input-field" /></div>
+                                    </div>
+                                    <div className="mt-4"><label className="label">Negotiation Notes</label><textarea name="compensation.negotiationNotes" rows={2} value={formState.compensation?.negotiationNotes || ''} onChange={handleFormChange} className="input-field"></textarea></div>
                                 </div>
                                 <div><label className="label">Skills (comma-separated)</label><input type="text" name="skills" value={formState.skills} onChange={handleFormChange} className="input-field" /></div>
                                 <div><label className="label">Tags (comma-separated)</label><input type="text" name="tags" value={formState.tags?.join(', ') || ''} onChange={handleFormChange} className="input-field" /></div>
-                                <div><label className="label">Resume / Summary</label><textarea name="resumeSummary" rows={8} value={formState.resumeSummary} onChange={handleFormChange} className="input-field"></textarea></div>
+                                <div><label className="label">Resume / Summary</label><textarea name="resumeSummary" rows={5} value={formState.resumeSummary} onChange={handleFormChange} className="input-field"></textarea></div>
                             </div>
                              <div className="mt-6 pt-4 border-t border-gray-700 flex justify-end gap-3">
                                 <Button type="button" variant="secondary" onClick={handleCancel}>Cancel</Button>
@@ -355,9 +433,11 @@ export const CandidateProfilesTab: React.FC = () => {
                         <div className="flex flex-col h-full">
                             <div className="flex justify-between items-start mb-4">
                                 <div>
-                                    <h3 className="text-xl font-bold text-white">{selectedCandidate.name}</h3>
-                                    <p className="text-sm text-indigo-400">{selectedCandidate.email}</p>
-                                    <p className="text-sm text-gray-400">{selectedCandidate.phone}</p>
+                                    <div className="flex items-center gap-3">
+                                        <h3 className="text-xl font-bold text-white">{selectedCandidate.name}</h3>
+                                        <StatusBadge status={selectedCandidate.status} />
+                                    </div>
+                                    <p className="text-sm text-indigo-400">{selectedCandidate.email} &bull; {selectedCandidate.phone}</p>
                                 </div>
                                 <div className="flex gap-2">
                                     <Button onClick={handleEdit} variant="secondary" icon={<EditIcon className="h-4 w-4"/>}>Edit</Button>
@@ -365,23 +445,36 @@ export const CandidateProfilesTab: React.FC = () => {
                                 </div>
                             </div>
                             <div className="overflow-y-auto flex-1 space-y-4 pr-2 -mr-2">
-                                <div className="grid grid-cols-3 gap-4 text-sm text-center">
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                                     <div><p className="text-gray-400">Experience</p><p>{selectedCandidate.experience ?? 'N/A'} yrs</p></div>
                                     <div><p className="text-gray-400">Location</p><p>{selectedCandidate.location || 'N/A'}</p></div>
-                                    <div><p className="text-gray-400">Availability</p><p>{selectedCandidate.availability || 'N/A'}</p></div>
+                                    <div><p className="text-gray-400">Source</p><p>{selectedCandidate.source || 'N/A'}</p></div>
+                                    <div><p className="text-gray-400">Visa Status</p><p>{selectedCandidate.visaStatus || 'N/A'}</p></div>
+                                    <div><p className="text-gray-400">Last Contact</p><p>{selectedCandidate.lastContactDate ? new Date(selectedCandidate.lastContactDate).toLocaleDateString() : 'N/A'}</p></div>
                                 </div>
-                                <div>
-                                    <h4 className="font-semibold text-gray-300 mb-1">Tags</h4>
-                                    <div className="flex flex-wrap gap-2">
-                                        {selectedCandidate.tags?.length ? selectedCandidate.tags.map(tag => <TagPill key={tag} tag={tag} />) : <p className="text-sm text-gray-500">No tags.</p>}
+                                <div className="p-4 bg-gray-800 border border-gray-700 rounded-lg">
+                                    <h4 className="font-semibold text-gray-300 mb-2 flex items-center gap-2"><DollarSignIcon className="h-4 w-4 text-gray-400"/> Compensation</h4>
+                                    <div className="grid grid-cols-2 gap-4 text-sm">
+                                        <div><p className="text-gray-400">Current Salary</p><p>${(selectedCandidate.compensation?.currentSalary || 0).toLocaleString()}</p></div>
+                                        <div><p className="text-gray-400">Expected Salary</p><p>${(selectedCandidate.compensation?.salaryExpectation || 0).toLocaleString()}</p></div>
                                     </div>
+                                    {selectedCandidate.compensation?.negotiationNotes && <div className="mt-2"><p className="text-gray-400 text-sm">Notes</p><p className="text-sm italic text-gray-300">"{selectedCandidate.compensation.negotiationNotes}"</p></div>}
+                                </div>
+                                <div className="p-4 bg-gray-800 border border-gray-700 rounded-lg">
+                                    <h4 className="font-semibold text-gray-300 mb-3 flex items-center gap-2"><BriefcaseIcon className="h-4 w-4 text-gray-400"/> Application History</h4>
+                                    {selectedCandidate.applicationHistory?.length ? (
+                                        <div className="space-y-3 relative before:content-[''] before:absolute before:left-[5.5px] before:top-0 before:h-full before:w-px before:bg-gray-700">
+                                            {selectedCandidate.applicationHistory.map((item, index) => <ApplicationHistoryItem key={index} item={item} />)}
+                                        </div>
+                                    ) : <p className="text-sm text-gray-500">No application history.</p>}
                                 </div>
                                 <div>
-                                    <h4 className="font-semibold text-gray-300 mb-1">Skills</h4>
+                                    <h4 className="font-semibold text-gray-300 mb-1">Skills & Tags</h4>
                                     <div className="flex flex-wrap gap-2">
                                         {selectedCandidate.skills.split(',').map(skill => skill.trim()).filter(Boolean).map(skill => (
                                             <span key={skill} className="bg-gray-700 text-indigo-300 text-xs font-medium px-2.5 py-1 rounded-full">{skill}</span>
                                         ))}
+                                        {selectedCandidate.tags?.map(tag => <TagPill key={tag} tag={tag} />)}
                                     </div>
                                 </div>
                                 <div>
@@ -487,6 +580,7 @@ export const CandidateProfilesTab: React.FC = () => {
                 .input-field { padding: 0.5rem 0.75rem; }
                 .input-field-sm { padding: 0.375rem 0.625rem; font-size: 0.875rem; }
                 .input-field:focus, .input-field-sm:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 1px #6366f1; }
+                .input-field[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.6); }
                 .form-checkbox { appearance: none; -webkit-appearance: none; background-color: #374151; border: 1px solid #4b5563; border-radius: 0.25rem; } .form-checkbox:checked { background-color: #4f46e5; border-color: #4f46e5; background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e"); background-size: 100% 100%; background-position: center; background-repeat: no-repeat; }
                 @keyframes fade-in-up { from { opacity: 0; transform: translateY(20px) translateX(-50%); } to { opacity: 1; transform: translateY(0) translateX(-50%); } } .animate-fade-in-up { animation: fade-in-up 0.3s ease-out forwards; }
                 /* Custom scrollbar for candidate list */

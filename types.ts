@@ -19,7 +19,22 @@ export enum TagType {
     Passive = 'Passive',
     Referral = 'Referral',
     HighPriority = 'High Priority',
+}
+
+export enum CandidateStatus {
+    Active = 'Active',
+    Passive = 'Passive',
+    Interviewing = 'Interviewing',
+    Hired = 'Hired',
     DoNotContact = 'Do Not Contact',
+}
+
+export interface ApplicationHistory {
+    jobId: number;
+    jobTitle: string;
+    stageReached: string;
+    dateApplied: string; // ISO 8601 string
+    outcome: 'Withdrew' | 'Rejected' | 'Hired' | 'In Progress';
 }
 
 export interface Candidate {
@@ -29,12 +44,21 @@ export interface Candidate {
   phone: string;
   skills: string; // Comma-separated for simplicity
   resumeSummary: string;
-  // New fields for advanced filtering
   experience?: number; // in years
   location?: string;
-  salaryExpectation?: number;
   availability?: string; // e.g., 'Immediate', '2 Weeks Notice'
   tags?: string[];
+  // NEW FIELDS
+  status: CandidateStatus;
+  lastContactDate?: string; // ISO 8601 string
+  source?: string; // e.g., 'LinkedIn', 'Referral', 'Career Page'
+  compensation?: {
+    currentSalary?: number;
+    salaryExpectation?: number;
+    negotiationNotes?: string;
+  };
+  visaStatus?: string; // e.g., 'US Citizen', 'H1-B', 'Needs Sponsorship'
+  applicationHistory?: ApplicationHistory[];
 }
 
 export interface RankedCandidate {
@@ -57,9 +81,19 @@ export interface BiasAuditReport {
 }
 
 export enum JobStatus {
+    PendingApproval = 'Pending Approval',
     Open = 'Open',
     OnHold = 'On Hold',
     Closed = 'Closed',
+}
+
+export type ApprovalStatus = 'Pending' | 'Approved' | 'Rejected';
+
+export interface ApprovalStep {
+    stage: string;
+    approver: string;
+    status: ApprovalStatus;
+    timestamp?: string; // ISO 8601 string
 }
 
 export interface JobRequisition {
@@ -70,7 +104,18 @@ export interface JobRequisition {
     requiredSkills: string[];
     description: string;
     applications: number; // For visualization mock
+    // New fields for advanced requisition management
+    hiringManager: string;
+    createdAt: string; // ISO 8601 string, for aging
+    budget: {
+        salaryMin: number;
+        salaryMax: number;
+        currency: 'USD';
+        budgetCode: string;
+    };
+    approvalWorkflow: ApprovalStep[];
 }
+
 
 export enum EmailTemplateType {
     Rejection = 'Rejection',
@@ -160,12 +205,14 @@ export interface PredictiveAnalysisReport {
   marketTrends: MarketTrend[];
 }
 
+export type RefinableSourcingField = 'creativeKeywords' | 'alternativeJobTitles' | 'sampleOutreachMessage';
+
 export interface SourcingStrategy {
   creativeKeywords: string[];
   alternativeJobTitles: string[];
   untappedChannels: {
     channel: string;
-    reasoning: string;
+    reasoning:string;
   }[];
   sampleOutreachMessage: string;
 }

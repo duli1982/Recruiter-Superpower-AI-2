@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tab, Candidate, JobRequisition, JobStatus, PipelineStage, TagType, CommunityPrompt } from './types';
+import { Tab, Candidate, JobRequisition, JobStatus, PipelineStage, TagType, CommunityPrompt, CandidateStatus } from './types';
 
 // SVG Icons as React Components
 const ZapIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></svg>;
@@ -35,18 +35,186 @@ export const TABS: { id: Tab; name: string; icon: React.ReactElement, descriptio
 ];
 
 export const MOCK_CANDIDATES: Candidate[] = [
-    { id: 1, name: 'Alex Johnson', email: 'alex.j@example.com', phone: '123-456-7890', skills: 'React, Node.js, AWS, CI/CD, TypeScript', resumeSummary: '10+ years of experience in full-stack development (React, Node.js). Led a team of 5 engineers at a major tech firm. Strong background in cloud architecture (AWS) and CI/CD pipelines. Proven track record of delivering complex projects on time.', experience: 10, location: 'San Francisco, CA', salaryExpectation: 180000, availability: '2 Weeks Notice', tags: [TagType.HighPriority, TagType.Passive] },
-    { id: 2, name: 'Brenda Smith', email: 'brenda.s@example.com', phone: '234-567-8901', skills: 'React, TypeScript, UI/UX, Design Systems, Jest', resumeSummary: 'Senior Frontend Engineer with 8 years of expertise in React, TypeScript, and modern state management libraries. Passionate about UI/UX and design systems. Contributed to open-source projects and speaks at tech conferences.', experience: 8, location: 'New York, NY', salaryExpectation: 165000, availability: '1 Month Notice', tags: [TagType.Referral] },
-    { id: 3, name: 'Charles Davis', email: 'charles.d@example.com', phone: '345-678-9012', skills: 'Python, Django, Flask, PostgreSQL, Microservices', resumeSummary: 'Mid-level Backend Engineer with 4 years of experience in Python (Django, Flask) and database management (PostgreSQL). Eager to grow into a senior role. Experience with microservices and RESTful APIs. Quick learner and team player.', experience: 4, location: 'Austin, TX', salaryExpectation: 120000, availability: 'Immediate', tags: [] },
-    { id: 4, name: 'Diana Miller', email: 'diana.m@example.com', phone: '456-789-0123', skills: 'React, Firebase, JavaScript, HTML, CSS', resumeSummary: 'Recent computer science graduate with internship experience at a startup. Built several projects using React and Firebase. Strong foundation in algorithms and data structures. Highly motivated and looking for a challenging frontend role.', experience: 1, location: 'Remote', salaryExpectation: 95000, availability: 'Immediate', tags: [TagType.Internal] }
+    { 
+        id: 1, 
+        name: 'Alex Johnson', 
+        email: 'alex.j@example.com', 
+        phone: '123-456-7890', 
+        skills: 'React, Node.js, AWS, CI/CD, TypeScript', 
+        resumeSummary: '10+ years of experience in full-stack development (React, Node.js). Led a team of 5 engineers at a major tech firm. Strong background in cloud architecture (AWS) and CI/CD pipelines. Proven track record of delivering complex projects on time.', 
+        experience: 10, 
+        location: 'San Francisco, CA', 
+        availability: '2 Weeks Notice', 
+        tags: [TagType.HighPriority, TagType.Passive],
+        status: CandidateStatus.Interviewing,
+        lastContactDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        source: 'LinkedIn Recruiter',
+        compensation: {
+            currentSalary: 170000,
+            salaryExpectation: 180000,
+            negotiationNotes: 'Firm on expectation, but open to sign-on bonus.'
+        },
+        visaStatus: 'US Citizen',
+        applicationHistory: [
+            { jobId: 101, jobTitle: 'Senior Frontend Engineer', stageReached: 'Technical Interview', dateApplied: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(), outcome: 'In Progress' }
+        ]
+    },
+    { 
+        id: 2, 
+        name: 'Brenda Smith', 
+        email: 'brenda.s@example.com', 
+        phone: '234-567-8901', 
+        skills: 'React, TypeScript, UI/UX, Design Systems, Jest', 
+        resumeSummary: 'Senior Frontend Engineer with 8 years of expertise in React, TypeScript, and modern state management libraries. Passionate about UI/UX and design systems. Contributed to open-source projects and speaks at tech conferences.', 
+        experience: 8, 
+        location: 'New York, NY', 
+        availability: '1 Month Notice', 
+        tags: [TagType.Referral],
+        status: CandidateStatus.Passive,
+        lastContactDate: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
+        source: 'Referral by J. Doe',
+        compensation: {
+            currentSalary: 155000,
+            salaryExpectation: 165000,
+        },
+        visaStatus: 'Green Card',
+        applicationHistory: [
+             { jobId: 103, jobTitle: 'UX/UI Designer', stageReached: 'Initial Screen', dateApplied: new Date(Date.now() - 100 * 24 * 60 * 60 * 1000).toISOString(), outcome: 'Withdrew' }
+        ]
+    },
+    { 
+        id: 3, 
+        name: 'Charles Davis', 
+        email: 'charles.d@example.com', 
+        phone: '345-678-9012', 
+        skills: 'Python, Django, Flask, PostgreSQL, Microservices', 
+        resumeSummary: 'Mid-level Backend Engineer with 4 years of experience in Python (Django, Flask) and database management (PostgreSQL). Eager to grow into a senior role. Experience with microservices and RESTful APIs. Quick learner and team player.', 
+        experience: 4, 
+        location: 'Austin, TX', 
+        availability: 'Immediate', 
+        tags: [],
+        status: CandidateStatus.Active,
+        lastContactDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+        source: 'Career Page',
+        compensation: {
+            salaryExpectation: 120000,
+        },
+        visaStatus: 'H1-B (Transfer)',
+        applicationHistory: [
+            { jobId: 102, jobTitle: 'Product Manager, Growth', stageReached: 'Applied', dateApplied: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), outcome: 'In Progress' }
+        ]
+    },
+    { 
+        id: 4, 
+        name: 'Diana Miller', 
+        email: 'diana.m@example.com', 
+        phone: '456-789-0123', 
+        skills: 'React, Firebase, JavaScript, HTML, CSS', 
+        resumeSummary: 'Recent computer science graduate with internship experience at a startup. Built several projects using React and Firebase. Strong foundation in algorithms and data structures. Highly motivated and looking for a challenging frontend role.', 
+        experience: 1, 
+        location: 'Remote', 
+        availability: 'Immediate', 
+        tags: [TagType.Internal],
+        status: CandidateStatus.Hired,
+        lastContactDate: new Date('2024-03-15T00:00:00.000Z').toISOString(),
+        source: 'University Career Fair',
+        compensation: {
+            currentSalary: 95000,
+            salaryExpectation: 95000,
+        },
+        visaStatus: 'Needs Sponsorship (F1-OPT)',
+        applicationHistory: [
+            { jobId: 104, jobTitle: 'DevOps Engineer', stageReached: 'Hired', dateApplied: new Date('2024-01-20T00:00:00.000Z').toISOString(), outcome: 'Hired' }
+        ]
+    }
 ];
 
 export const MOCK_JOB_REQUISITIONS: JobRequisition[] = [
-    { id: 101, title: 'Senior Frontend Engineer', department: 'Engineering', status: JobStatus.Open, requiredSkills: ['React', 'TypeScript', 'AWS'], description: 'Looking for an experienced frontend engineer to lead our new platform development.', applications: 78 },
-    { id: 102, title: 'Product Manager, Growth', department: 'Product', status: JobStatus.Open, requiredSkills: ['A/B Testing', 'SQL', 'Mixpanel'], description: 'Join our growth team to drive user acquisition and retention strategies.', applications: 45 },
-    { id: 103, title: 'UX/UI Designer', department: 'Design', status: JobStatus.OnHold, requiredSkills: ['Figma', 'Prototyping', 'User Research'], description: 'Hiring on hold pending Q3 budget approval for a new designer.', applications: 32 },
-    { id: 104, title: 'DevOps Engineer', department: 'Engineering', status: JobStatus.Closed, requiredSkills: ['Kubernetes', 'Terraform', 'CI/CD'], description: 'Position filled in Q1. Candidate started on March 15th.', applications: 123 },
-    { id: 105, title: 'Data Scientist', department: 'Data & Analytics', status: JobStatus.Open, requiredSkills: ['Python', 'Machine Learning', 'Spark'], description: 'Seeking a data scientist to build predictive models for customer behavior.', applications: 61 },
+    { 
+        id: 101, 
+        title: 'Senior Frontend Engineer', 
+        department: 'Engineering', 
+        status: JobStatus.Open, 
+        requiredSkills: ['React', 'TypeScript', 'AWS'], 
+        description: 'Looking for an experienced frontend engineer to lead our new platform development.', 
+        applications: 78,
+        hiringManager: 'Casey Newton',
+        createdAt: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000).toISOString(), // 35 days ago
+        budget: { salaryMin: 150000, salaryMax: 190000, currency: 'USD', budgetCode: 'ENG-FE-Q324-01' },
+        approvalWorkflow: [
+            { stage: 'Hiring Manager Approval', approver: 'Casey Newton', status: 'Approved', timestamp: new Date(Date.now() - 36 * 24 * 60 * 60 * 1000).toISOString() },
+            { stage: 'Finance Approval', approver: 'Alex Rivera', status: 'Approved', timestamp: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000).toISOString() },
+            { stage: 'VP Approval', approver: 'Jordan Lee', status: 'Approved', timestamp: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000).toISOString() },
+        ]
+    },
+    { 
+        id: 102, 
+        title: 'Product Manager, Growth', 
+        department: 'Product', 
+        status: JobStatus.PendingApproval, 
+        requiredSkills: ['A/B Testing', 'SQL', 'Mixpanel'], 
+        description: 'Join our growth team to drive user acquisition and retention strategies.', 
+        applications: 0,
+        hiringManager: 'Taylor Smith',
+        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
+        budget: { salaryMin: 130000, salaryMax: 160000, currency: 'USD', budgetCode: 'PROD-GR-Q324-05' },
+        approvalWorkflow: [
+            { stage: 'Hiring Manager Approval', approver: 'Taylor Smith', status: 'Approved', timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
+            { stage: 'Finance Approval', approver: 'Alex Rivera', status: 'Pending' },
+            { stage: 'VP Approval', approver: 'Jordan Lee', status: 'Pending' },
+        ]
+    },
+    { 
+        id: 103, 
+        title: 'UX/UI Designer', 
+        department: 'Design', 
+        status: JobStatus.OnHold, 
+        requiredSkills: ['Figma', 'Prototyping', 'User Research'], 
+        description: 'Hiring on hold pending Q3 budget approval for a new designer.', 
+        applications: 32,
+        hiringManager: 'Morgan Kelly',
+        createdAt: new Date(Date.now() - 95 * 24 * 60 * 60 * 1000).toISOString(), // 95 days ago
+        budget: { salaryMin: 110000, salaryMax: 140000, currency: 'USD', budgetCode: 'DES-UX-Q224-11' },
+        approvalWorkflow: [
+             { stage: 'Hiring Manager Approval', approver: 'Morgan Kelly', status: 'Approved', timestamp: new Date(Date.now() - 96 * 24 * 60 * 60 * 1000).toISOString() },
+            { stage: 'Finance Approval', approver: 'Alex Rivera', status: 'Approved', timestamp: new Date(Date.now() - 95 * 24 * 60 * 60 * 1000).toISOString() },
+            { stage: 'VP Approval', approver: 'Jordan Lee', status: 'Approved', timestamp: new Date(Date.now() - 95 * 24 * 60 * 60 * 1000).toISOString() },
+        ]
+    },
+    { 
+        id: 104, 
+        title: 'DevOps Engineer', 
+        department: 'Engineering', 
+        status: JobStatus.Closed, 
+        requiredSkills: ['Kubernetes', 'Terraform', 'CI/CD'], 
+        description: 'Position filled in Q1. Candidate started on March 15th.', 
+        applications: 123,
+        hiringManager: 'Casey Newton',
+        createdAt: new Date('2024-01-15T00:00:00.000Z').toISOString(),
+        budget: { salaryMin: 160000, salaryMax: 200000, currency: 'USD', budgetCode: 'ENG-DO-Q124-02' },
+        approvalWorkflow: [
+            { stage: 'Hiring Manager Approval', approver: 'Casey Newton', status: 'Approved' },
+            { stage: 'Finance Approval', approver: 'Alex Rivera', status: 'Approved' },
+            { stage: 'VP Approval', approver: 'Jordan Lee', status: 'Approved' },
+        ]
+    },
+    { 
+        id: 105, 
+        title: 'Data Scientist', 
+        department: 'Data & Analytics', 
+        status: JobStatus.Open, 
+        requiredSkills: ['Python', 'Machine Learning', 'Spark'], 
+        description: 'Seeking a data scientist to build predictive models for customer behavior.', 
+        applications: 61,
+        hiringManager: 'Sam Altman',
+        createdAt: new Date(Date.now() - 65 * 24 * 60 * 60 * 1000).toISOString(), // 65 days ago
+        budget: { salaryMin: 140000, salaryMax: 175000, currency: 'USD', budgetCode: 'DATA-DS-Q224-09' },
+        approvalWorkflow: [
+            { stage: 'Hiring Manager Approval', approver: 'Sam Altman', status: 'Approved' },
+            { stage: 'Finance Approval', approver: 'Alex Rivera', status: 'Approved' },
+            { stage: 'VP Approval', approver: 'Jordan Lee', status: 'Approved' },
+        ]
+    },
 ];
 
 

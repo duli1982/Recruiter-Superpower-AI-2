@@ -2,9 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Spinner } from '../ui/Spinner';
-import { JobRequisition, Candidate, PipelineStage, SourcingStrategy, TagType } from '../../types';
+import { JobRequisition, Candidate, PipelineStage, SourcingStrategy, TagType, RefinableSourcingField } from '../../types';
 import { MOCK_JOB_REQUISITIONS, MOCK_CANDIDATES, PIPELINE_STAGES, MOCK_PIPELINE_DATA } from '../../constants';
-import { generateSourcingStrategy } from '../../services/geminiService';
+import { generateSourcingStrategy, refineSourcingStrategy } from '../../services/geminiService';
 
 const REQUISITIONS_STORAGE_KEY = 'recruiter-ai-requisitions';
 const CANDIDATES_STORAGE_KEY = 'recruiter-ai-candidates';
@@ -39,6 +39,49 @@ const MetricCard: React.FC<{ title: string; value: string; icon: React.ReactNode
     </div>
 );
 
+const RefineComponent: React.FC<{
+    field: RefinableSourcingField;
+    isRefining: boolean;
+    refiningField: RefinableSourcingField | null;
+    setRefiningField: (field: RefinableSourcingField | null) => void;
+    refinementFeedback: string;
+    setRefinementFeedback: (feedback: string) => void;
+    handleRefineStrategy: (e: React.FormEvent) => void;
+}> = ({ field, isRefining, refiningField, setRefiningField, refinementFeedback, setRefinementFeedback, handleRefineStrategy }) => {
+    const isThisFieldRefining = refiningField === field;
+
+    if (isThisFieldRefining) {
+        return (
+            <form onSubmit={handleRefineStrategy} className="mt-2 space-y-2 p-2 bg-gray-950 rounded-md">
+                <input
+                    type="text"
+                    placeholder="Your feedback, e.g., 'more focus on public APIs'"
+                    value={refinementFeedback}
+                    onChange={(e) => setRefinementFeedback(e.target.value)}
+                    className="input-field-sm w-full"
+                    autoFocus
+                />
+                <div className="flex justify-end gap-2">
+                    <Button type="button" variant="secondary" onClick={() => setRefiningField(null)} className="!text-xs !py-1 !px-2">Cancel</Button>
+                    <Button type="submit" isLoading={isRefining} className="!text-xs !py-1 !px-2">Refine</Button>
+                </div>
+            </form>
+        );
+    }
+
+    return (
+        <div className="text-right mt-2">
+            <Button
+                variant="secondary"
+                onClick={() => { setRefiningField(field); setRefinementFeedback(''); }}
+                className="!text-xs !py-1 !px-2"
+            >
+                Suggest Alternatives
+            </Button>
+        </div>
+    );
+};
+
 export const PerformanceCreativityTab: React.FC = () => {
     const [requisitions, setRequisitions] = useState<JobRequisition[]>([]);
     const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -49,6 +92,11 @@ export const PerformanceCreativityTab: React.FC = () => {
     const [strategy, setStrategy] = useState<SourcingStrategy | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+    
+    // State for refinement
+    const [refiningField, setRefiningField] = useState<RefinableSourcingField | null>(null);
+    const [refinementFeedback, setRefinementFeedback] = useState('');
+    const [isRefining, setIsRefining] = useState(false);
 
     useEffect(() => {
         const allReqs = getInitialData(REQUISITIONS_STORAGE_KEY, MOCK_JOB_REQUISITIONS);
@@ -74,13 +122,15 @@ export const PerformanceCreativityTab: React.FC = () => {
         const isAllJobs = selectedAnalyticsJobId === 'all';
         const relevantPipeline = isAllJobs ? pipelineData : { [selectedAnalyticsJobId]: pipelineData[selectedAnalyticsJobId] || {} };
 
-        // FIX: Removed unnecessary type cast that was causing type inference failures.
-        const hiredCandidatesInPipeline = new Set(
-            Object.values(relevantPipeline).flatMap(job => job[PipelineStage.Hired] || [])
+        // FIX: Cast Object.values to a typed array to resolve type inference issues with flatMap, ensuring arithmetic operations are valid.
+        type JobPipeline = { [stage in PipelineStage]?: number[] };
+        // FIX: Added explicit Set<number> type annotation to correct type inference for .size property.
+        const hiredCandidatesInPipeline: Set<number> = new Set(
+            (Object.values(relevantPipeline) as JobPipeline[]).flatMap((job) => job[PipelineStage.Hired] || [])
         );
-        // FIX: Removed unnecessary type cast that was causing type inference failures.
-        const offerCandidatesInPipeline = new Set(
-             Object.values(relevantPipeline).flatMap(job => job[PipelineStage.Offer] || [])
+        // FIX: Added explicit Set<number> type annotation to correct type inference for .size property.
+        const offerCandidatesInPipeline: Set<number> = new Set(
+             (Object.values(relevantPipeline) as JobPipeline[]).flatMap((job) => job[PipelineStage.Offer] || [])
         );
 
         const totalOffersMade = hiredCandidatesInPipeline.size + offerCandidatesInPipeline.size;
@@ -111,8 +161,9 @@ export const PerformanceCreativityTab: React.FC = () => {
         const relevantPipeline = isAllJobs ? pipelineData : { [selectedAnalyticsJobId]: pipelineData[selectedAnalyticsJobId] || {} };
 
         const stageCounts = PIPELINE_STAGES.reduce((acc, stage) => {
-            // FIX: Removed unnecessary type cast that was causing type inference failures.
-            acc[stage] = Object.values(relevantPipeline).reduce((sum: number, job) => sum + (job[stage]?.length || 0), 0);
+            // FIX: Cast Object.values to a typed array to resolve type inference issues with reduce.
+            type JobPipeline = { [stage in PipelineStage]?: number[] };
+            acc[stage] = (Object.values(relevantPipeline) as JobPipeline[]).reduce((sum: number, job) => sum + (job[stage]?.length || 0), 0);
             return acc;
         }, {} as Record<PipelineStage, number>);
         
@@ -131,18 +182,21 @@ export const PerformanceCreativityTab: React.FC = () => {
         const isAllJobs = selectedAnalyticsJobId === 'all';
         const relevantPipeline = isAllJobs ? pipelineData : { [selectedAnalyticsJobId]: pipelineData[selectedAnalyticsJobId] || {} };
 
-        // FIX: Removed unnecessary type cast that was causing type inference failures.
-        const hiredIds = new Set(Object.values(relevantPipeline).flatMap(p => p[PipelineStage.Hired] || []));
+        // FIX: Cast Object.values to a typed array to resolve type inference issues with flatMap.
+        type JobPipeline = { [stage in PipelineStage]?: number[] };
+        const hiredIds = new Set((Object.values(relevantPipeline) as JobPipeline[]).flatMap((p) => p[PipelineStage.Hired] || []));
         const sourceCounts = candidates
             .filter(c => hiredIds.has(c.id))
             .flatMap(c => c.tags || [TagType.Passive]) // Default to passive if no tags
-            .reduce((acc, tag) => {
+            // FIX: Add explicit types to reduce callback to fix type inference issues.
+            .reduce((acc: Record<string, number>, tag: string) => {
                 acc[tag] = (acc[tag] || 0) + 1;
                 return acc;
             }, {} as Record<string, number>);
 
-        const totalHires = Object.values(sourceCounts).reduce((sum: number, count: number) => sum + count, 0);
-        return Object.entries(sourceCounts).map(([source, count]: [string, number]) => ({
+        // FIX: Cast Object.values/entries to typed arrays to fix arithmetic errors.
+        const totalHires = (Object.values(sourceCounts) as number[]).reduce((sum, count) => sum + count, 0);
+        return (Object.entries(sourceCounts) as [string, number][]).map(([source, count]) => ({
             source,
             count,
             percentage: totalHires > 0 ? (count / totalHires) * 100 : 0
@@ -164,6 +218,27 @@ export const PerformanceCreativityTab: React.FC = () => {
             setError(err instanceof Error ? err.message : "An unknown error occurred.");
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleRefineStrategy = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!refiningField || !strategy || !selectedSourcingJobId || !refinementFeedback) return;
+        
+        const selectedReq = requisitions.find(r => r.id === selectedSourcingJobId);
+        if (!selectedReq) return;
+
+        setIsRefining(true);
+        setError('');
+        try {
+            const refinedPart = await refineSourcingStrategy(selectedReq, strategy, refiningField, refinementFeedback);
+            setStrategy(prev => prev ? { ...prev, ...refinedPart } : null);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "An unknown error occurred during refinement.");
+        } finally {
+            setIsRefining(false);
+            setRefiningField(null);
+            setRefinementFeedback('');
         }
     };
     
@@ -265,15 +340,21 @@ export const PerformanceCreativityTab: React.FC = () => {
                                 <div className="space-y-6 animate-fade-in overflow-y-auto max-h-[60vh] pr-2">
                                     <div>
                                         <h4 className="font-semibold text-indigo-300 mb-2">Creative Keywords & Boolean</h4>
-                                        <div className="space-y-2">
-                                            {strategy.creativeKeywords.map((kw, i) => <code key={i} className="block text-xs bg-gray-950 p-2 rounded-md text-gray-300">{kw}</code>)}
-                                        </div>
+                                        {isRefining && refiningField === 'creativeKeywords' ? <Spinner size="sm" /> :
+                                            <div className="space-y-2">
+                                                {strategy.creativeKeywords.map((kw, i) => <code key={i} className="block text-xs bg-gray-950 p-2 rounded-md text-gray-300">{kw}</code>)}
+                                            </div>
+                                        }
+                                        <RefineComponent field="creativeKeywords" isRefining={isRefining} refiningField={refiningField} setRefiningField={setRefiningField} refinementFeedback={refinementFeedback} setRefinementFeedback={setRefinementFeedback} handleRefineStrategy={handleRefineStrategy} />
                                     </div>
                                     <div>
                                         <h4 className="font-semibold text-indigo-300 mb-2">Alternative Job Titles</h4>
-                                        <div className="flex flex-wrap gap-2">
-                                            {strategy.alternativeJobTitles.map((title, i) => <span key={i} className="bg-gray-700 text-indigo-300 text-xs font-medium px-2.5 py-1 rounded-full">{title}</span>)}
-                                        </div>
+                                         {isRefining && refiningField === 'alternativeJobTitles' ? <Spinner size="sm" /> :
+                                            <div className="flex flex-wrap gap-2">
+                                                {strategy.alternativeJobTitles.map((title, i) => <span key={i} className="bg-gray-700 text-indigo-300 text-xs font-medium px-2.5 py-1 rounded-full">{title}</span>)}
+                                            </div>
+                                        }
+                                        <RefineComponent field="alternativeJobTitles" isRefining={isRefining} refiningField={refiningField} setRefiningField={setRefiningField} refinementFeedback={refinementFeedback} setRefinementFeedback={setRefinementFeedback} handleRefineStrategy={handleRefineStrategy} />
                                     </div>
                                     <div>
                                         <h4 className="font-semibold text-indigo-300 mb-2">Untapped Sourcing Channels</h4>
@@ -288,7 +369,10 @@ export const PerformanceCreativityTab: React.FC = () => {
                                     </div>
                                     <div>
                                         <h4 className="font-semibold text-indigo-300 mb-2">Sample Outreach Message</h4>
-                                        <p className="text-sm text-gray-300 whitespace-pre-wrap bg-gray-800 p-3 rounded-md border border-gray-700">{strategy.sampleOutreachMessage}</p>
+                                         {isRefining && refiningField === 'sampleOutreachMessage' ? <Spinner size="sm" /> :
+                                            <p className="text-sm text-gray-300 whitespace-pre-wrap bg-gray-800 p-3 rounded-md border border-gray-700">{strategy.sampleOutreachMessage}</p>
+                                        }
+                                        <RefineComponent field="sampleOutreachMessage" isRefining={isRefining} refiningField={refiningField} setRefiningField={setRefiningField} refinementFeedback={refinementFeedback} setRefinementFeedback={setRefinementFeedback} handleRefineStrategy={handleRefineStrategy} />
                                     </div>
                                 </div>
                             )}
@@ -297,7 +381,7 @@ export const PerformanceCreativityTab: React.FC = () => {
                 </div>
             </div>
             <style>{`
-                .input-field { display: block; width: 100%; background-color: #1f2937; border: 1px solid #4b5563; border-radius: 0.375rem; color: white; padding: 0.5rem 0.75rem; } .input-field:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 1px #6366f1; }
+                .input-field, .input-field-sm { display: block; width: 100%; background-color: #1f2937; border: 1px solid #4b5563; border-radius: 0.375rem; color: white; padding: 0.5rem 0.75rem; } .input-field:focus, .input-field-sm:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 1px #6366f1; } .input-field-sm { padding: 0.375rem 0.625rem; font-size: 0.875rem; }
                 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } } .animate-fade-in { animation: fade-in 0.5s ease-out forwards; }
             `}</style>
         </div>

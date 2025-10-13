@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type, GenerateContentResponse } from '@google/genai';
-import { Candidate, RankedCandidate, BiasAuditReport, JobRequisition, JobStatus, EmailTemplateType, InterviewStage, ScoutedCandidate, AIGroupAnalysisReport, PredictiveAnalysisReport, SourcingStrategy } from '../types';
+import { Candidate, RankedCandidate, BiasAuditReport, JobRequisition, JobStatus, EmailTemplateType, InterviewStage, ScoutedCandidate, AIGroupAnalysisReport, PredictiveAnalysisReport, SourcingStrategy, RefinableSourcingField } from '../types';
 
 if (!process.env.API_KEY) {
     console.warn("API_KEY environment variable not set. AI features will not work.");
@@ -672,5 +672,70 @@ export const generateSourcingStrategy = async (requisition: JobRequisition): Pro
     } catch (error) {
         console.error("Error generating sourcing strategy:", error);
         throw new Error("Failed to generate sourcing strategy. The AI model may have returned an unexpected response.");
+    }
+};
+
+export const refineSourcingStrategy = async (
+    requisition: JobRequisition,
+    currentStrategy: SourcingStrategy,
+    fieldToRefine: RefinableSourcingField,
+    feedback: string
+): Promise<Partial<SourcingStrategy>> => {
+    
+    const whatToGenerate = {
+        creativeKeywords: "an array of 5-7 new creative keywords and boolean strings",
+        alternativeJobTitles: "an array of 4-6 new alternative or related job titles",
+        sampleOutreachMessage: "a new concise, compelling, and personalized outreach message template (as a string)"
+    };
+
+    const responseSchemaProperties = {
+        creativeKeywords: { type: Type.ARRAY, items: { type: Type.STRING } },
+        alternativeJobTitles: { type: Type.ARRAY, items: { type: Type.STRING } },
+        sampleOutreachMessage: { type: Type.STRING },
+    };
+
+    const prompt = `
+        You are an expert sourcing strategist refining a previously generated plan.
+
+        Original Job Requisition:
+        - Title: ${requisition.title}
+        - Description: ${requisition.description}
+        - Required Skills: ${requisition.requiredSkills.join(', ')}
+
+        Current Sourcing Strategy:
+        - Creative Keywords: ${currentStrategy.creativeKeywords.join(', ')}
+        - Alternative Job Titles: ${currentStrategy.alternativeJobTitles.join(', ')}
+        - Untapped Channels: ${currentStrategy.untappedChannels.map(c => c.channel).join(', ')}
+        - Sample Outreach Message: "${currentStrategy.sampleOutreachMessage}"
+
+        The user wants to refine the "${fieldToRefine}" section based on the following feedback:
+        Feedback: "${feedback}"
+
+        Your task is to regenerate ONLY the "${fieldToRefine}" part of the strategy.
+        Generate ${whatToGenerate[fieldToRefine]}.
+
+        Return your response as a single JSON object containing only the key for the refined field ("${fieldToRefine}").
+    `;
+
+    try {
+        const response: GenerateContentResponse = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        [fieldToRefine]: responseSchemaProperties[fieldToRefine],
+                    },
+                    required: [fieldToRefine],
+                },
+            },
+        });
+        const jsonText = response.text.trim();
+        return JSON.parse(jsonText) as Partial<SourcingStrategy>;
+    } catch (error) {
+        console.error("Error refining sourcing strategy:", error);
+        throw new Error(`Failed to refine ${fieldToRefine}. The AI model may have returned an unexpected response.`);
     }
 };
