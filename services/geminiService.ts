@@ -247,6 +247,57 @@ export const getJobRequisitionSuggestion = async (requisition: JobRequisition, p
     }
 };
 
+export const getCRMSuggestion = async (candidate: Candidate): Promise<{ suggestion: string; nextStep: 'Email' | 'Call' | 'Note' }> => {
+    const prompt = `
+        You are an expert Candidate Relationship Management (CRM) strategist for a senior recruiter.
+        Analyze the following candidate profile and provide a concise, actionable next step to nurture the relationship.
+
+        Candidate Profile:
+        - Name: ${candidate.name}
+        - Skills: ${candidate.skills}
+        - Summary: ${candidate.resumeSummary}
+        - CRM Status: ${candidate.crm?.relationshipStatus}
+        - Last Contact: ${candidate.lastContactDate ? new Date(candidate.lastContactDate).toLocaleDateString() : 'N/A'}
+        - Next Scheduled Follow-up: ${candidate.crm?.nextFollowUpDate ? new Date(candidate.crm.nextFollowUpDate).toLocaleDateString() : 'None'}
+        - Touchpoint History: ${candidate.crm?.touchpointHistory.map(tp => `${new Date(tp.date).toLocaleDateString()}: ${tp.type} - ${tp.notes}`).join('\n')}
+
+        Today's date is ${new Date().toLocaleDateString()}.
+
+        Your task is to return a single JSON object with two keys:
+        1. "suggestion": A creative, personalized, and actionable suggestion for the next touchpoint. Be specific. If suggesting an email, mention the topic.
+        2. "nextStep": The type of action suggested. Must be one of: 'Email', 'Call', 'Note'.
+
+        Example for a "Silver Medalist":
+        {
+          "suggestion": "Brenda was a finalist 3 months ago for a similar role. A new 'Senior Product Designer' req just opened up that perfectly matches her skills. Suggest sending a personalized email referencing her previous strong performance and highlighting this new opportunity.",
+          "nextStep": "Email"
+        }
+    `;
+
+    try {
+        const response: GenerateContentResponse = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        suggestion: { type: Type.STRING },
+                        nextStep: { type: Type.STRING },
+                    },
+                    required: ['suggestion', 'nextStep']
+                },
+            },
+        });
+        const jsonText = response.text.trim();
+        return JSON.parse(jsonText) as { suggestion: string; nextStep: 'Email' | 'Call' | 'Note' };
+    } catch (error) {
+        console.error("Error generating CRM suggestion:", error);
+        throw new Error("Failed to generate CRM suggestion.");
+    }
+};
+
 export const parseAvailability = async (text: string, timezone: string): Promise<{startTime: string, endTime: string}[]> => {
     const prompt = `
         You are an intelligent scheduling assistant. Your task is to parse the following text for available time slots and return them as structured data.

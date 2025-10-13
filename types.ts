@@ -38,6 +38,36 @@ export interface ApplicationHistory {
     outcome: 'Withdrew' | 'Rejected' | 'Hired' | 'In Progress';
 }
 
+// New types for Candidate CRM
+export type RelationshipStatus = 'Cold' | 'Warm' | 'Hot' | 'Past Candidate' | 'Silver Medalist';
+export type TouchpointType = 'Email' | 'Call' | 'Meeting' | 'Note';
+export type NurtureCadence = 'Monthly' | 'Quarterly' | 'Bi-annual';
+export type NurtureContentType = 'Company News' | 'Industry Insights' | 'Career Tips' | 'New Roles';
+
+export interface Touchpoint {
+  id: string;
+  date: string; // ISO 8601
+  type: TouchpointType;
+  notes: string;
+  author: string; // Recruiter's name
+}
+
+export interface CandidateCRM {
+  relationshipStatus: RelationshipStatus;
+  nextFollowUpDate?: string; // ISO 8601
+  touchpointHistory: Touchpoint[];
+  relationshipScore: number; // 1-100
+  nurtureSettings: {
+    autoNurture: boolean;
+    cadence: NurtureCadence;
+    contentType: NurtureContentType;
+  };
+  communitySettings: {
+    newsletter: boolean;
+    eventInvites: boolean;
+  };
+}
+
 export interface Candidate {
   id: number;
   name: string;
@@ -61,6 +91,7 @@ export interface Candidate {
   visaStatus?: string; // e.g., 'US Citizen', 'H1-B', 'Needs Sponsorship'
   applicationHistory?: ApplicationHistory[];
   gender?: 'Male' | 'Female' | 'Non-binary' | 'Prefer not to say';
+  crm?: CandidateCRM;
 }
 
 export interface RankedCandidate {

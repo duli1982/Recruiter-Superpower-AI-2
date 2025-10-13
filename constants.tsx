@@ -60,7 +60,19 @@ export const MOCK_CANDIDATES: Candidate[] = [
         gender: 'Male',
         applicationHistory: [
             { jobId: 101, jobTitle: 'Senior Frontend Engineer', stageReached: 'Technical Interview', dateApplied: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(), outcome: 'In Progress' }
-        ]
+        ],
+        crm: {
+            relationshipStatus: 'Hot',
+            nextFollowUpDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
+            relationshipScore: 85,
+            touchpointHistory: [
+                { id: 'tp-4', date: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(), type: 'Email', notes: 'Initial outreach on LinkedIn.', author: 'Alex' },
+                { id: 'tp-5', date: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(), type: 'Call', notes: '30-min phone screen. Good fit, technically sound. Moving to technical interview.', author: 'Alex' },
+                { id: 'tp-6', date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), type: 'Meeting', notes: 'Technical interview completed. Strong performance on React questions.', author: 'Casey Newton' },
+            ],
+            nurtureSettings: { autoNurture: false, cadence: 'Monthly', contentType: 'New Roles' },
+            communitySettings: { newsletter: false, eventInvites: true },
+        }
     },
     { 
         id: 2, 
@@ -74,7 +86,7 @@ export const MOCK_CANDIDATES: Candidate[] = [
         availability: '1 Month Notice', 
         tags: [TagType.Referral],
         status: CandidateStatus.Passive,
-        lastContactDate: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
+        lastContactDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
         source: 'Referral by J. Doe',
         compensation: {
             currentSalary: 155000,
@@ -83,8 +95,20 @@ export const MOCK_CANDIDATES: Candidate[] = [
         visaStatus: 'Green Card',
         gender: 'Female',
         applicationHistory: [
-             { jobId: 103, jobTitle: 'UX/UI Designer', stageReached: 'Initial Screen', dateApplied: new Date(Date.now() - 100 * 24 * 60 * 60 * 1000).toISOString(), outcome: 'Withdrew' }
-        ]
+             { jobId: 103, jobTitle: 'UX/UI Designer', stageReached: 'Final Interview', dateApplied: new Date(Date.now() - 100 * 24 * 60 * 60 * 1000).toISOString(), outcome: 'Rejected' }
+        ],
+        crm: {
+            relationshipStatus: 'Silver Medalist',
+            nextFollowUpDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+            relationshipScore: 92,
+            touchpointHistory: [
+                { id: 'tp-1', date: new Date(Date.now() - 100 * 24 * 60 * 60 * 1000).toISOString(), type: 'Meeting', notes: 'Final interview for UX/UI Designer. Strong candidate, but another had more direct product experience.', author: 'Casey Newton' },
+                { id: 'tp-2', date: new Date(Date.now() - 98 * 24 * 60 * 60 * 1000).toISOString(), type: 'Email', notes: 'Sent rejection email, highlighted her strengths and expressed interest in future roles.', author: 'Taylor Smith' },
+                { id: 'tp-3', date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(), type: 'Email', notes: 'Sent quarterly newsletter with company updates.', author: 'Automated' },
+            ],
+            nurtureSettings: { autoNurture: true, cadence: 'Quarterly', contentType: 'Company News' },
+            communitySettings: { newsletter: true, eventInvites: true },
+        },
     },
     { 
         id: 3, 
