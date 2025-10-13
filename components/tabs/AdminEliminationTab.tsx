@@ -7,6 +7,7 @@ import { generateEmail, parseResume } from '../../services/geminiService';
 // FIX: Add CandidateStatus to imports to satisfy the Candidate type requirements.
 // FIX: Correct import path for types
 import { Candidate, EmailTemplateType, CandidateStatus, CandidateCRM } from '../../types';
+// FIX: Correct import path for constants
 import { MOCK_CANDIDATES } from '../../constants';
 
 const UploadIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>;
@@ -310,8 +311,8 @@ export const AdminEliminationTab: React.FC = () => {
                              <div>
                                 <label htmlFor="template" className="block text-sm font-medium text-gray-300">Template</label>
                                 <select id="template" value={selectedTemplate} onChange={e => handleTemplateChange(e.target.value as EmailTemplateType)} className="mt-1 block w-full bg-gray-800 border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-white p-2">
-                                    {/* FIX: Use Object.entries for string enums to get [key, value] pairs for stable keys. */}
-                                    {Object.entries(EmailTemplateType).map(([key, value]) => <option key={key} value={value}>{value}</option>)}
+                                    {/* FIX: Use Object.values for string enums to get values for options. */}
+                                    {Object.values(EmailTemplateType).map((value) => <option key={value} value={value}>{value}</option>)}
                                 </select>
                             </div>
                         </div>

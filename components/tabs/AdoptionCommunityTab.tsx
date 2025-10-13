@@ -3,6 +3,7 @@ import { Card, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
 // FIX: Correct import path for types
 import { CommunityPrompt, Tab } from '../../types';
+// FIX: Correct import path for constants
 import { MOCK_COMMUNITY_PROMPTS, TABS } from '../../constants';
 
 // Icons
@@ -125,7 +126,30 @@ export const AdoptionCommunityTab: React.FC = () => {
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="space-y-8">
-                     <Card>
+                    <Card>
+                        <CardHeader title="Recruiting is Multi-Stakeholder Chaos ❌" icon={<AlertTriangleIcon className="text-yellow-400" />} />
+                        <div className="mt-4 space-y-4">
+                            <div>
+                                <h4 className="font-semibold text-gray-300">The Invisible Stakeholders:</h4>
+                                <p className="text-sm text-gray-400">Finance, Legal, IT, Facilities, Coordinators, EAs, Peer Interviewers...</p>
+                            </div>
+                            <div>
+                                <h4 className="font-semibold text-gray-300">A Real Comedy of Errors:</h4>
+                                <div className="mt-2 space-y-1 text-sm text-gray-300 border-l-2 border-gray-700 pl-4">
+                                    <p><strong>Day 1:</strong> Candidate wants to interview</p>
+                                    <p><strong>Day 4:</strong> Hiring manager replies</p>
+                                    <p><strong>Day 7:</strong> 3 interviewers confirmed, 1 on vacation</p>
+                                    <p><strong>Day 11:</strong> All confirmed for next Tuesday</p>
+                                    <p className="font-bold text-red-400">Day 12: Candidate emails "I accepted another offer"</p>
+                                </div>
+                            </div>
+                             <blockquote className="mt-4 pl-4 border-l-4 border-indigo-500 bg-gray-800/50 p-4 rounded-r-lg">
+                                <p className="text-gray-300 italic">This app's new features, like the "Interview Loop Status" and "Onboarding Checklist," are designed to create a central command center, preventing these costly delays.</p>
+                            </blockquote>
+                        </div>
+                    </Card>
+
+                    <Card>
                         <CardHeader title="A Common Hiring Scenario" icon={<ZapIcon className="text-yellow-400" />} />
                         <div className="mt-4 space-y-2 text-sm text-gray-300">
                            <p><strong>Week 1:</strong> "I need a React developer."</p>

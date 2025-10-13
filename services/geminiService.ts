@@ -1,4 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
+// FIX: Correct import path for types
 import { Candidate, JobRequisition, EmailTemplateType, RankedCandidate, BiasAuditReport, AIGroupAnalysisReport, InterviewPacket, ScoutedCandidate, SourcingStrategy, BooleanSearchQuery, Offer, CompetitiveJobAnalysis } from "../types";
 
 // Always use new GoogleGenAI({apiKey: process.env.API_KEY});

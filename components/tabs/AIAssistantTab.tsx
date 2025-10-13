@@ -4,7 +4,7 @@ import { Button } from '../ui/Button';
 import { Spinner } from '../ui/Spinner';
 import { generateEmail, parseResume } from '../../services/geminiService';
 // FIX: Add CandidateStatus to imports to satisfy the Candidate type requirements.
-import { Candidate, EmailTemplateType, SentEmail, EmailStatus, EmailSequence, CandidateStatus } from '../../types';
+import { Candidate, EmailTemplateType, SentEmail, EmailStatus, EmailSequence, CandidateStatus, CandidateCRM } from '../../types';
 import { MOCK_CANDIDATES, MOCK_SENT_EMAILS, MOCK_SEQUENCES } from '../../constants';
 
 // Icons
@@ -23,6 +23,10 @@ const AlertTriangleIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...pro
 const CANDIDATES_STORAGE_KEY = 'recruiter-ai-candidates';
 const SENT_EMAILS_STORAGE_KEY = 'recruiter-ai-sent-emails';
 const SEQUENCES_STORAGE_KEY = 'recruiter-ai-sequences';
+
+// FIX: Create a blank CRM object to satisfy Candidate type requirements
+const BLANK_CRM: CandidateCRM = { relationshipStatus: 'Cold', relationshipScore: 10, touchpointHistory: [], nurtureSettings: { autoNurture: false, cadence: 'Monthly', contentType: 'New Roles' }, communitySettings: { newsletter: false, eventInvites: false }};
+
 
 // --- HELPER FUNCTIONS & COMPONENTS ---
 const getInitialData = <T,>(key: string, fallback: T): T => {
@@ -47,7 +51,7 @@ const ParsedResumeForm: React.FC<{ initialData: Partial<Candidate>; onSave: (dat
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setFormData({ ...formData, [e.target.name]: e.target.value });
     const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); 
         // FIX: Add the required 'status' property to the object passed to onSave.
-        onSave({ ...formData, status: CandidateStatus.Passive }); 
+        onSave({ ...formData, status: CandidateStatus.Passive, applicationHistory: [], crm: BLANK_CRM }); 
     };
     return (
         <form onSubmit={handleSubmit} className="mt-4 space-y-4 p-4 bg-gray-800 rounded-md border border-gray-700 animate-fade-in">

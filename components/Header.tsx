@@ -1,4 +1,5 @@
 import React from 'react';
+// FIX: Correct import path for constants
 import { TABS } from '../constants';
 import { useMemo } from 'react';
 

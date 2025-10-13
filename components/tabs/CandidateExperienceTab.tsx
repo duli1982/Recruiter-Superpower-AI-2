@@ -5,7 +5,8 @@ import { Spinner } from '../ui/Spinner';
 // FIX: Correct import path for geminiService
 import { generateInterviewPacket } from '../../services/geminiService';
 // FIX: Correct import path for types
-import { Candidate, InterviewStage, JobRequisition, Interview, InterviewStatus, InterviewPacket } from '../../types';
+import { Candidate, InterviewStage, JobRequisition, Interview, InterviewStatus, InterviewPacket, InterviewerStatus, Interviewer } from '../../types';
+// FIX: Correct import path for constants
 import { MOCK_CANDIDATES, MOCK_JOB_REQUISITIONS, MOCK_SCHEDULED_INTERVIEWS } from '../../constants';
 
 // Icons
@@ -15,6 +16,8 @@ const ClockIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmln
 const UsersIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>;
 const FileTextIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>;
 const AlertCircleIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>;
+const HelpCircleIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>;
+const XCircleIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>;
 
 
 const CANDIDATES_STORAGE_KEY = 'recruiter-ai-candidates';
@@ -38,6 +41,20 @@ const InterviewStatusBadge: React.FC<{ status: InterviewStatus }> = ({ status })
     };
     return <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${styles[status]}`}>{status}</span>;
 };
+
+const InterviewerStatusBadge: React.FC<{ status: InterviewerStatus }> = ({ status }) => {
+    const styles: Record<InterviewerStatus, string> = {
+        'Pending': 'bg-yellow-500/20 text-yellow-300',
+        'Confirmed': 'bg-green-500/20 text-green-300',
+        'Declined': 'bg-red-500/20 text-red-300',
+    };
+    const icons: Record<InterviewerStatus, React.ReactNode> = {
+        'Pending': <HelpCircleIcon className="h-3 w-3" />,
+        'Confirmed': <CheckCircleIcon className="h-3 w-3" />,
+        'Declined': <XCircleIcon className="h-3 w-3" />,
+    };
+    return <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full ${styles[status]}`}>{icons[status]} {status}</span>;
+}
 
 const InterviewPacketModal: React.FC<{ packet: InterviewPacket, onClose: () => void }> = ({ packet, onClose }) => (
     <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={onClose}>
@@ -130,6 +147,7 @@ export const CandidateExperienceTab: React.FC = () => {
         };
         
         const feedbackMissing = isPast && interview.status === InterviewStatus.Completed && !interview.feedbackSubmitted;
+        const hasPendingInterviewers = interview.interviewers.some(i => i.status === 'Pending');
 
         return (
             <Card className={`bg-gray-800/50 ${feedbackMissing ? 'border-yellow-500/50' : ''}`}>
@@ -141,12 +159,25 @@ export const CandidateExperienceTab: React.FC = () => {
                     </div>
                     <InterviewStatusBadge status={interview.status} />
                 </div>
-                 {feedbackMissing && <div className="mt-2 text-xs text-yellow-300 flex items-center gap-2"><AlertCircleIcon className="h-4 w-4" /> Feedback Overdue</div>}
-                <div className="mt-4 text-sm text-gray-300 space-y-2">
+                 <div className="mt-4 text-sm text-gray-300 space-y-2">
                     <div className="flex items-center gap-2"><CalendarIcon className="h-4 w-4 text-gray-500" /><span>{new Date(interview.startTime).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</span></div>
-                    <div className="flex items-center gap-2"><UsersIcon className="h-4 w-4 text-gray-500" /><span>{interview.interviewers.join(', ')}</span></div>
                 </div>
-                <div className="mt-4 pt-3 border-t border-gray-700 flex gap-2 justify-end">
+
+                {!isPast && (
+                    <div className="mt-3">
+                        <h5 className="text-xs font-semibold text-gray-400 mb-2">Interview Loop Status</h5>
+                        <div className="space-y-2">
+                            {interview.interviewers.map(interviewer => (
+                                <div key={interviewer.name} className="flex items-center justify-between text-sm">
+                                    <span className="text-gray-300">{interviewer.name}</span>
+                                    <InterviewerStatusBadge status={interviewer.status} />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+                
+                <div className="mt-4 pt-3 border-t border-gray-700 flex flex-wrap gap-2 justify-end">
                     {isPast ? (
                         <>
                            <Button variant="secondary" className="!text-xs !py-1 !px-2" onClick={() => handleStatusUpdate(interview.id, InterviewStatus.Completed)}>Mark Completed</Button>
@@ -162,7 +193,9 @@ export const CandidateExperienceTab: React.FC = () => {
                             >
                                 Generate Packet
                             </Button>
-                            <Button variant="secondary" className="!text-xs !py-1 !px-2">Reschedule</Button>
+                            <Button variant="secondary" className="!text-xs !py-1 !px-2" disabled={hasPendingInterviewers} title={hasPendingInterviewers ? "Confirm all interviewers first" : ""}>
+                                Send Invites
+                            </Button>
                         </>
                     )}
                 </div>
@@ -181,13 +214,14 @@ export const CandidateExperienceTab: React.FC = () => {
                 {interviewsNeedingFeedback.length > 0 ? interviewsNeedingFeedback.map(interview => {
                     const candidate = candidates.find(c => c.id === interview.candidateId);
                     const job = requisitions.find(j => j.id === interview.jobId);
+                    const interviewerName = interview.interviewers[0]?.name || 'Interviewer';
                     return (
                         <div key={interview.id} className="p-3 bg-gray-800 rounded-md flex justify-between items-center">
                             <div>
                                 <p className="font-semibold text-sm text-white">{candidate?.name}</p>
                                 <p className="text-xs text-gray-400">{job?.title}</p>
                             </div>
-                            <Button variant="secondary" className="!text-xs !py-1 !px-2" onClick={() => alert(`Reminder sent to ${interview.interviewers[0]}!`)}>Nudge</Button>
+                            <Button variant="secondary" className="!text-xs !py-1 !px-2" onClick={() => alert(`Reminder sent to ${interviewerName}!`)}>Nudge</Button>
                         </div>
                     );
                 }) : <p className="text-sm text-gray-500 text-center py-4">All feedback is up to date!</p>}

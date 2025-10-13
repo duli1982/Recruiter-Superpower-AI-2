@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
 // FIX: Correct import path for types
-import { Candidate, TagType, AIGroupAnalysisReport, CandidateStatus, ApplicationHistory, RelationshipStatus, CandidateCRM, Touchpoint, TouchpointType, NurtureCadence, NurtureContentType } from '../../types';
+import { Candidate, TagType, AIGroupAnalysisReport, CandidateStatus, ApplicationHistory, RelationshipStatus, CandidateCRM, Touchpoint, TouchpointType, NurtureCadence, NurtureContentType, Attachment, ComplianceInfo } from '../../types';
+// FIX: Correct import path for constants
 import { MOCK_CANDIDATES } from '../../constants';
 // FIX: Correct import path for geminiService
 import { analyzeCandidateGroup, getCRMSuggestion } from '../../services/geminiService';
@@ -21,6 +22,9 @@ const HeartIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmln
 const MessageCircleIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>;
 const PhoneIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>;
 const AlertTriangleIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>;
+const FileTextIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>;
+const UploadIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>;
+const ShieldCheckIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>;
 // FIX: Added the missing UsersIcon component definition to resolve the "Cannot find name" error.
 const UsersIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>;
 
@@ -55,7 +59,7 @@ const getInitialData = <T,>(key: string, fallback: T): T => {
 
 const BLANK_FILTERS: Filters = { searchQuery: '', skills: '', location: '', minExperience: 0, maxExperience: 20, tag: 'All', status: 'All', source: '', visaStatus: '', relationshipStatus: 'All' };
 const BLANK_CRM: CandidateCRM = { relationshipStatus: 'Cold', relationshipScore: 10, touchpointHistory: [], nurtureSettings: { autoNurture: false, cadence: 'Monthly', contentType: 'New Roles' }, communitySettings: { newsletter: false, eventInvites: false }};
-const BLANK_CANDIDATE: Omit<Candidate, 'id'> = { name: '', email: '', phone: '', skills: '', resumeSummary: '', experience: 0, location: '', availability: 'Immediate', tags: [], status: CandidateStatus.Passive, lastContactDate: '', source: '', compensation: { currentSalary: 0, salaryExpectation: 0, negotiationNotes: ''}, visaStatus: '', applicationHistory: [], crm: BLANK_CRM };
+const BLANK_CANDIDATE: Omit<Candidate, 'id'> = { name: '', email: '', phone: '', skills: '', resumeSummary: '', experience: 0, location: '', availability: 'Immediate', tags: [], status: CandidateStatus.Passive, lastContactDate: '', source: '', compensation: { currentSalary: 0, salaryExpectation: 0, negotiationNotes: ''}, visaStatus: '', applicationHistory: [], crm: BLANK_CRM, attachments: [], compliance: { consentStatus: 'Not Requested' } };
 
 export const CandidateProfilesTab: React.FC = () => {
     const [candidates, setCandidates] = useState<Candidate[]>(() => getInitialData(STORAGE_KEY, MOCK_CANDIDATES));
@@ -65,7 +69,7 @@ export const CandidateProfilesTab: React.FC = () => {
     const [filters, setFilters] = useState<Filters>(BLANK_FILTERS);
     const [showFilters, setShowFilters] = useState(false);
     const [savedSearches, setSavedSearches] = useState<SavedSearch[]>(() => getInitialData(SAVED_SEARCHES_KEY, []));
-    const [activeDetailTab, setActiveDetailTab] = useState<'profile' | 'crm'>('profile');
+    const [activeDetailTab, setActiveDetailTab] = useState<'profile' | 'crm' | 'documents'>('profile');
 
     // Multi-select and AI summary state
     const [multiSelectIds, setMultiSelectIds] = useState<Set<number>>(new Set());
@@ -77,6 +81,7 @@ export const CandidateProfilesTab: React.FC = () => {
     // CRM state
     const [crmSuggestion, setCrmSuggestion] = useState<{suggestion: string, nextStep: string} | null>(null);
     const [isGeneratingCrmSuggestion, setIsGeneratingCrmSuggestion] = useState(false);
+    const [newActivity, setNewActivity] = useState({ type: 'Note' as TouchpointType, notes: '' });
 
     useEffect(() => {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(candidates));
@@ -232,6 +237,47 @@ export const CandidateProfilesTab: React.FC = () => {
         }
     };
 
+    const handleLogActivity = () => {
+        if (!selectedCandidateId || !newActivity.notes) return;
+        const newTouchpoint: Touchpoint = {
+            id: `tp-${Date.now()}`,
+            date: new Date().toISOString(),
+            type: newActivity.type,
+            notes: newActivity.notes,
+            author: 'Alex', // Hardcoded for demo
+        };
+
+        setCandidates(prev => prev.map(c => {
+            if (c.id === selectedCandidateId) {
+                const updatedCrm = c.crm ? { ...c.crm, touchpointHistory: [newTouchpoint, ...c.crm.touchpointHistory] } : { ...BLANK_CRM, touchpointHistory: [newTouchpoint] };
+                return { ...c, crm: updatedCrm, lastContactDate: new Date().toISOString() };
+            }
+            return c;
+        }));
+        setNewActivity({ type: 'Note', notes: '' });
+    };
+
+    const handleUpdateConsent = () => {
+        if (!selectedCandidateId) return;
+        const statuses: ComplianceInfo['consentStatus'][] = ['Given', 'Pending', 'Expired', 'Not Requested'];
+        
+        setCandidates(prev => prev.map(c => {
+            if (c.id === selectedCandidateId) {
+                const currentStatus = c.compliance?.consentStatus || 'Not Requested';
+                const currentIndex = statuses.indexOf(currentStatus);
+                const nextStatus = statuses[(currentIndex + 1) % statuses.length];
+                const newCompliance: ComplianceInfo = {
+                    ...c.compliance,
+                    consentStatus: nextStatus,
+                    consentDate: nextStatus === 'Given' ? new Date().toISOString() : c.compliance?.consentDate,
+                    consentPurpose: nextStatus === 'Given' ? 'General consideration for open roles.' : c.compliance?.consentPurpose,
+                };
+                return { ...c, compliance: newCompliance };
+            }
+            return c;
+        }));
+    };
+
     const StatusBadge: React.FC<{ status: CandidateStatus }> = ({ status }) => {
         const colors = { [CandidateStatus.Active]: 'bg-green-500/20 text-green-300', [CandidateStatus.Passive]: 'bg-blue-500/20 text-blue-300', [CandidateStatus.Interviewing]: 'bg-purple-500/20 text-purple-300', [CandidateStatus.Hired]: 'bg-teal-500/20 text-teal-300', [CandidateStatus.DoNotContact]: 'bg-red-500/20 text-red-300' };
         return <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${colors[status] || 'bg-gray-700 text-gray-300'}`}>{status}</span>;
@@ -261,6 +307,16 @@ export const CandidateProfilesTab: React.FC = () => {
         return <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${colors[tag] || 'bg-gray-700 text-gray-300'}`}>{tag}</span>
     };
 
+    const ComplianceStatusBadge: React.FC<{ status: ComplianceInfo['consentStatus'] }> = ({ status }) => {
+        const colors: Record<ComplianceInfo['consentStatus'], string> = {
+            'Given': 'bg-green-500/20 text-green-300',
+            'Pending': 'bg-yellow-500/20 text-yellow-300',
+            'Expired': 'bg-red-500/20 text-red-300',
+            'Not Requested': 'bg-gray-600/20 text-gray-300'
+        };
+        return <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${colors[status]}`}>{status}</span>;
+    };
+
     const getScoreColor = (score: number) => score >= 85 ? 'text-green-400' : score >= 70 ? 'text-yellow-400' : 'text-red-400';
 
     const renderProfileDetails = (candidate: Candidate) => (
@@ -279,6 +335,16 @@ export const CandidateProfilesTab: React.FC = () => {
                     <div><p className="text-gray-400">Expected Salary</p><p>${(candidate.compensation?.salaryExpectation || 0).toLocaleString()}</p></div>
                 </div>
                 {candidate.compensation?.negotiationNotes && <div className="mt-2"><p className="text-gray-400 text-sm">Notes</p><p className="text-sm italic text-gray-300">"{candidate.compensation.negotiationNotes}"</p></div>}
+            </div>
+             <div className="p-4 bg-gray-800 border border-gray-700 rounded-lg">
+                <h4 className="font-semibold text-gray-300 mb-2 flex items-center gap-2"><ShieldCheckIcon className="h-4 w-4 text-gray-400"/> Compliance</h4>
+                <div className="flex items-center justify-between">
+                    <div className="text-sm">
+                        <p className="text-gray-400">Consent Status: <ComplianceStatusBadge status={candidate.compliance?.consentStatus || 'Not Requested'} /></p>
+                        {candidate.compliance?.consentDate && <p className="text-gray-500 text-xs mt-1">Date: {new Date(candidate.compliance.consentDate).toLocaleDateString()}</p>}
+                    </div>
+                    <Button variant="secondary" className="!text-xs !py-1 !px-2" onClick={handleUpdateConsent}>Update</Button>
+                </div>
             </div>
             <div className="p-4 bg-gray-800 border border-gray-700 rounded-lg">
                 <h4 className="font-semibold text-gray-300 mb-3 flex items-center gap-2"><BriefcaseIcon className="h-4 w-4 text-gray-400"/> Application History</h4>
@@ -302,50 +368,56 @@ export const CandidateProfilesTab: React.FC = () => {
         const touchpointIcons: Record<TouchpointType, React.ReactNode> = { 'Email': <MessageCircleIcon className="h-4 w-4"/>, 'Call': <PhoneIcon className="h-4 w-4"/>, 'Meeting': <UsersIcon className="h-4 w-4"/>, 'Note': <EditIcon className="h-4 w-4"/> };
         return(
             <div className="overflow-y-auto flex-1 space-y-6 pr-2 -mr-2">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-                    <div className="p-3 bg-gray-800 rounded-lg"><p className="label">Relationship Status</p><RelationshipStatusBadge status={crm.relationshipStatus}/></div>
-                    <div className="p-3 bg-gray-800 rounded-lg"><p className="label">Next Follow-up</p><p className="text-sm font-semibold">{crm.nextFollowUpDate ? new Date(crm.nextFollowUpDate).toLocaleDateString() : 'Not Set'}</p></div>
-                    <div className="p-3 bg-gray-800 rounded-lg"><p className="label">Relationship Score</p><p className={`text-sm font-semibold ${getScoreColor(crm.relationshipScore)}`}>{crm.relationshipScore}/100</p></div>
-                </div>
-                
-                <div className="p-4 bg-gray-800 rounded-lg border border-gray-700">
-                    <h4 className="font-semibold text-gray-300 mb-2">Relationship Health</h4>
-                    {isAging ? (
-                        <div className="flex items-center gap-3 p-3 bg-yellow-900/30 border border-yellow-700/50 rounded-md">
-                            <AlertTriangleIcon className="h-6 w-6 text-yellow-400 flex-shrink-0" />
-                            <div>
-                                <p className="font-semibold text-yellow-300">Candidate is going cold!</p>
-                                <p className="text-sm text-yellow-400">Last contact was {daysSinceContact} days ago. It's time to re-engage.</p>
-                            </div>
-                        </div>
-                    ) : (
-                         <p className="text-sm text-gray-400">Relationship is warm. Last contact was {daysSinceContact} days ago.</p>
-                    )}
-                </div>
-
-                <Card className="bg-gray-950 border-indigo-700/50">
-                    <CardHeader title="AI Nurture Assistant" icon={<SparklesIcon />} description="Get smart suggestions for your next move."/>
-                    <Button onClick={handleGetCrmSuggestion} isLoading={isGeneratingCrmSuggestion} className="w-full">{isAging ? 'Suggest Re-engagement' : 'Suggest Next Step'}</Button>
-                    {isGeneratingCrmSuggestion && <Spinner text="Thinking..."/>}
-                    {crmSuggestion && <div className="mt-4 p-3 bg-indigo-900/40 rounded-lg text-sm text-indigo-200">{crmSuggestion.suggestion}</div>}
+                 <Card className="bg-gray-800">
+                    <h4 className="font-semibold text-gray-300 mb-2">Log Activity</h4>
+                    <div className="flex gap-2 mb-2">
+                        {/* FIX: Replaced Object.values(TouchpointType) with an array of string literals, as TouchpointType is a type alias, not an enum, and cannot be iterated over at runtime. */}
+                        {(['Email', 'Call', 'Meeting', 'Note'] as const).map(type => (
+                            <button key={type} onClick={() => setNewActivity(p => ({...p, type}))} className={`px-2 py-1 text-xs rounded-md ${newActivity.type === type ? 'bg-indigo-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>{type}</button>
+                        ))}
+                    </div>
+                    <textarea value={newActivity.notes} onChange={e => setNewActivity(p => ({...p, notes: e.target.value}))} placeholder={`Log a ${newActivity.type.toLowerCase()}...`} rows={3} className="input-field mb-2"></textarea>
+                    <Button onClick={handleLogActivity} disabled={!newActivity.notes} className="w-full">Log</Button>
                 </Card>
                 <div>
-                    <h4 className="font-semibold text-gray-300 mb-2">Touchpoint History</h4>
+                    <h4 className="font-semibold text-gray-300 mb-2">Activity Timeline</h4>
                     <div className="space-y-4">
                         {crm.touchpointHistory.length > 0 ? crm.touchpointHistory.map(tp => (
                             <div key={tp.id} className="flex gap-3">
-                                <div className="w-8 h-8 rounded-full bg-gray-700 flex-shrink-0 flex items-center justify-center text-gray-400">{touchpointIcons[tp.type]}</div>
+                                <div className="w-8 h-8 rounded-full bg-gray-700 flex-shrink-0 flex items-center justify-center text-gray-400" title={tp.type}>{touchpointIcons[tp.type]}</div>
                                 <div>
                                     <p className="text-sm text-gray-400">{new Date(tp.date).toLocaleString()} &bull; {tp.author}</p>
                                     <p className="text-sm text-gray-200">{tp.notes}</p>
                                 </div>
                             </div>
-                        )) : <p className="text-sm text-gray-500 text-center py-4">No touchpoints logged.</p>}
+                        )) : <p className="text-sm text-gray-500 text-center py-4">No activities logged.</p>}
                     </div>
                 </div>
             </div>
         );
     };
+
+    const renderDocumentsDetails = (candidate: Candidate) => (
+        <div className="overflow-y-auto flex-1 space-y-4 pr-2 -mr-2">
+            <Button variant="secondary" icon={<UploadIcon className="h-4 w-4" />} onClick={() => alert("Simulating document upload...")}>
+                Upload Document
+            </Button>
+            <div className="space-y-3">
+                {(candidate.attachments || []).map(doc => (
+                    <a key={doc.id} href={doc.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 p-3 bg-gray-800 rounded-lg border border-gray-700 hover:bg-gray-700/50 transition-colors">
+                        <FileTextIcon className="h-6 w-6 text-indigo-400 flex-shrink-0" />
+                        <div className="flex-grow">
+                            <p className="font-semibold text-white">{doc.name}</p>
+                            <p className="text-xs text-gray-400">{doc.type} &bull; Uploaded: {new Date(doc.uploadedAt).toLocaleDateString()}</p>
+                        </div>
+                    </a>
+                ))}
+            </div>
+            {(candidate.attachments || []).length === 0 && (
+                <p className="text-sm text-gray-500 text-center py-8">No documents uploaded for this candidate.</p>
+            )}
+        </div>
+    );
 
     return (
         <div>
@@ -361,7 +433,7 @@ export const CandidateProfilesTab: React.FC = () => {
                         <div className="p-3 bg-gray-800 rounded-md mb-3 space-y-3">
                             <h4 className="text-sm font-semibold">Advanced Filters</h4>
                             <div className="grid grid-cols-2 gap-2">
-                                <div><label className="label">Status</label><select name="status" value={filters.status} onChange={handleFilterChange} className="input-field-sm mt-1"><option>All</option>{Object.values(CandidateStatus).map(s => <option key={s}>{s}</option>)}</select></div>
+                                <div><label className="label">Status</label><select name="status" value={filters.status} onChange={handleFilterChange} className="input-field-sm mt-1"><option>All</option>{Object.values(CandidateStatus).map(s => <option key={s} value={s}>{s}</option>)}</select></div>
                                 <div><label className="label">CRM Status</label><select name="relationshipStatus" value={filters.relationshipStatus} onChange={handleFilterChange} className="input-field-sm mt-1"><option>All</option>{['Cold', 'Warm', 'Hot', 'Past Candidate', 'Silver Medalist'].map(s => <option key={s} value={s}>{s}</option>)}</select></div>
                             </div>
                             <div className="flex gap-2"><Button onClick={() => setFilters(BLANK_FILTERS)} variant="secondary" className="text-xs flex-grow">Reset</Button><Button onClick={handleSaveSearch} variant="secondary" icon={<BookmarkIcon className="h-4 w-4"/>} className="text-xs">Save</Button></div>
@@ -427,9 +499,12 @@ export const CandidateProfilesTab: React.FC = () => {
                                 <nav className="-mb-px flex space-x-6">
                                     <button onClick={() => setActiveDetailTab('profile')} className={`${activeDetailTab === 'profile' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-gray-400 hover:text-white'} py-2 px-1 border-b-2 font-medium text-sm`}>Profile</button>
                                     <button onClick={() => setActiveDetailTab('crm')} className={`${activeDetailTab === 'crm' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-gray-400 hover:text-white'} py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}>CRM <HeartIcon className="h-4 w-4"/></button>
+                                    <button onClick={() => setActiveDetailTab('documents')} className={`${activeDetailTab === 'documents' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-gray-400 hover:text-white'} py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}>Documents</button>
                                 </nav>
                             </div>
-                            {activeDetailTab === 'profile' ? renderProfileDetails(selectedCandidate) : renderCrmDetails(selectedCandidate)}
+                            {activeDetailTab === 'profile' && renderProfileDetails(selectedCandidate)}
+                            {activeDetailTab === 'crm' && renderCrmDetails(selectedCandidate)}
+                            {activeDetailTab === 'documents' && renderDocumentsDetails(selectedCandidate)}
                         </div>
                     ) : null}
                 </Card>
@@ -473,7 +548,7 @@ export const CandidateProfilesTab: React.FC = () => {
                     </Card>
                 </div>
             )}
-            <style>{`.label { display: block; text-transform: uppercase; font-size: 0.75rem; font-medium; color: #9ca3af; margin-bottom: 0.25rem;} .input-field, .input-field-sm { display: block; width: 100%; background-color: #1f2937; border: 1px solid #4b5563; border-radius: 0.375rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); color: white; } .input-field { padding: 0.5rem 0.75rem; } .input-field-sm { padding: 0.375rem 0.625rem; font-size: 0.875rem; } .input-field:focus, .input-field-sm:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 1px #6366f1; } .input-field[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.6); } .form-checkbox { height: 1rem; width: 1rem; appearance: none; -webkit-appearance: none; background-color: #374151; border: 1px solid #4b5563; border-radius: 0.25rem; } .form-checkbox:checked { background-color: #4f46e5; border-color: #4f46e5; background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e"); } @keyframes fade-in-up { from { opacity: 0; transform: translateY(20px) translateX(-50%); } to { opacity: 1; transform: translateY(0) translateX(-50%); } } .animate-fade-in-up { animation: fade-in-up 0.3s ease-out forwards; } .overflow-y-auto::-webkit-scrollbar { width: 6px; } .overflow-y-auto::-webkit-scrollbar-track { background: transparent; } .overflow-y-auto::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 3px; }`}</style>
+            <style>{`.label { display: block; text-transform: uppercase; font-size: 0.75rem; font-medium; color: #9ca3af; margin-bottom: 0.25rem;} .input-field, .input-field-sm { display: block; width: 100%; background-color: #1f2937; border: 1px solid #4b5563; border-radius: 0.375rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); color: white; } .input-field { padding: 0.5rem 0.75rem; } .input-field-sm { padding: 0.375rem 0.625rem; font-size: 0.875rem; } .input-field:focus, .input-field-sm:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 1px #6366f1; } .form-checkbox { appearance: none; -webkit-appearance: none; background-color: #374151; border: 1px solid #4b5563; border-radius: 0.25rem; } .form-checkbox:checked { background-color: #4f46e5; border-color: #4f46e5; background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e"); background-size: 100% 100%; background-position: center; background-repeat: no-repeat; } @keyframes fade-in-up { from { opacity: 0; transform: translateY(20px) translateX(-50%); } to { opacity: 1; transform: translateY(0) translateX(-50%); } } .animate-fade-in-up { animation: fade-in-up 0.3s ease-out forwards; }`}</style>
         </div>
     );
 };
