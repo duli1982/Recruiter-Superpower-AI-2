@@ -3,7 +3,7 @@ import {
   Tab, TabInfo, Candidate, JobRequisition, PipelineStage,
   CandidateStatus, JobStatus, EmailTemplateType, Interview, InterviewStage,
   InterviewStatus, InterviewerStatus, Offer, OfferStatus, ApprovalStatus,
-  CommunityPrompt, EmailSequence, SentEmail, EmailStatus, TagType
+  CommunityPrompt, EmailSequence, SentEmail, EmailStatus, TagType, Scorecard, EEOData
 } from './types';
 
 // Icons for sidebar tabs
@@ -97,6 +97,15 @@ export const MOCK_CANDIDATES: Candidate[] = [
   },
 ];
 
+const MOCK_SCORECARD: Scorecard = {
+  competencies: [
+    { id: 'c1', name: 'Product Vision', description: 'Ability to define a compelling product strategy and roadmap.' },
+    { id: 'c2', name: 'User Empathy', description: 'Deep understanding of user needs and ability to advocate for them.' },
+    { id: 'c3', name: 'Technical Acumen', description: 'Can effectively communicate with engineering and understand technical constraints.' },
+    { id: 'c4', name: 'Data-Driven Decisions', description: 'Uses data and metrics to inform product choices and measure success.' }
+  ]
+};
+
 export const MOCK_JOB_REQUISITIONS: JobRequisition[] = [
   {
     id: 101,
@@ -113,6 +122,7 @@ export const MOCK_JOB_REQUISITIONS: JobRequisition[] = [
     approvalWorkflow: [{ stage: 'VP Approval', approver: 'Alex Rivera', status: 'Approved' }],
     isLocked: true,
     initialRequiredSkills: ['Product Strategy', 'Agile', 'User Research', 'Roadmapping'],
+    scorecard: MOCK_SCORECARD,
   },
   {
     id: 102,
@@ -168,6 +178,44 @@ export const MOCK_SCHEDULED_INTERVIEWS: Interview[] = [
     ],
     status: InterviewStatus.Scheduled,
     feedbackSubmitted: false,
+  },
+  {
+    id: 'int-2',
+    candidateId: 3,
+    jobId: 101,
+    stage: 'Technical Interview',
+    startTime: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    endTime: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000 + 3600000).toISOString(),
+    interviewers: [
+      { name: 'Dana Scully', role: 'Lead Engineer', status: InterviewerStatus.Confirmed },
+    ],
+    status: InterviewStatus.Completed,
+    feedbackSubmitted: true,
+    feedback: [
+      {
+        interviewerName: 'Dana Scully',
+        submissionDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+        overallRecommendation: 'Hire',
+        summary: "Casey has a strong design sense and user-centric approach. Communication was clear and they handled technical questions well. Some gaps in deep systems thinking but very coachable.",
+        ratings: [
+          { competencyId: 'c1', rating: 4, notes: 'Good vision for the feature we discussed.' },
+          { competencyId: 'c2', rating: 5, notes: 'Excellent empathy, constantly brought the conversation back to the user.' },
+          { competencyId: 'c3', rating: 3, notes: 'Understands APIs but not database architecture deeply.' },
+          { competencyId: 'c4', rating: 4, notes: 'Referenced A/B testing and metric-driven design in their examples.' }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'int-3',
+    candidateId: 2,
+    jobId: 101,
+    stage: 'Phone Screen',
+    startTime: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    endTime: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000 + 1800000).toISOString(),
+    interviewers: [{ name: 'Taylor Kim', role: 'Recruiter', status: InterviewerStatus.Confirmed }],
+    status: InterviewStatus.Completed,
+    feedbackSubmitted: false,
   }
 ];
 
@@ -208,6 +256,34 @@ export const MOCK_COMMUNITY_PROMPTS: CommunityPrompt[] = [
     tags: ['Job Description', 'Creativity'],
   }
 ];
+
+export const MOCK_EEO_DATA: EEOData = {
+  [PipelineStage.Applied]: {
+    Gender: { 'Male': 520, 'Female': 460, 'Non-binary': 20, 'Undeclared': 50 },
+    Ethnicity: { 'White': 400, 'Asian': 250, 'Hispanic': 150, 'Black': 120, 'Two or more': 50, 'Undeclared': 80 }
+  },
+  [PipelineStage.PhoneScreen]: {
+    Gender: { 'Male': 104, 'Female': 92, 'Non-binary': 4, 'Undeclared': 10 },
+    Ethnicity: { 'White': 85, 'Asian': 50, 'Hispanic': 30, 'Black': 25, 'Two or more': 10, 'Undeclared': 10 }
+  },
+  [PipelineStage.TechnicalInterview]: {
+    Gender: { 'Male': 55, 'Female': 40, 'Non-binary': 2, 'Undeclared': 3 },
+    Ethnicity: { 'White': 48, 'Asian': 28, 'Hispanic': 12, 'Black': 8, 'Two or more': 2, 'Undeclared': 2 }
+  },
+  [PipelineStage.FinalInterview]: {
+    Gender: { 'Male': 25, 'Female': 18, 'Non-binary': 1, 'Undeclared': 1 },
+    Ethnicity: { 'White': 22, 'Asian': 13, 'Hispanic': 5, 'Black': 3, 'Two or more': 1, 'Undeclared': 1 }
+  },
+  [PipelineStage.Offer]: {
+    Gender: { 'Male': 12, 'Female': 8, 'Non-binary': 0, 'Undeclared': 0 },
+    Ethnicity: { 'White': 11, 'Asian': 6, 'Hispanic': 2, 'Black': 1, 'Two or more': 0, 'Undeclared': 0 }
+  },
+  [PipelineStage.Hired]: {
+    Gender: { 'Male': 9, 'Female': 6, 'Non-binary': 0, 'Undeclared': 0 },
+    Ethnicity: { 'White': 8, 'Asian': 4, 'Hispanic': 2, 'Black': 1, 'Two or more': 0, 'Undeclared': 0 }
+  }
+};
+
 
 export const MOCK_SENT_EMAILS: SentEmail[] = [];
 export const MOCK_SEQUENCES: EmailSequence[] = [];

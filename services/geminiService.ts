@@ -212,14 +212,28 @@ export const generateInterviewPacket = async (candidate: Candidate, requisition:
             }
         }
     };
-    const prompt = `Generate an interview packet for ${candidate.name} who is interviewing for the ${requisition.title} role. Summarize the candidate's profile and the role, identify 3-4 key focus areas for the interview, and suggest 3 behavioral questions and 3 technical topics to cover. Candidate: ${candidate.resumeSummary}. Role: ${requisition.description}.`;
+    const scorecardPrompt = requisition.scorecard ? `Additionally, here is the interview scorecard with key competencies for this role. Tailor some of the suggested questions to evaluate these specific competencies: ${JSON.stringify(requisition.scorecard.competencies.map(c => c.name))}` : '';
+
+    const prompt = `Generate an interview packet for ${candidate.name} who is interviewing for the ${requisition.title} role. Summarize the candidate's profile and the role, identify 3-4 key focus areas for the interview, and suggest 3 behavioral questions and 3 technical topics to cover. 
+    
+    Candidate: ${candidate.resumeSummary}. 
+    
+    Role: ${requisition.description}.
+    
+    ${scorecardPrompt}
+    `;
     
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: { responseMimeType: "application/json", responseSchema: schema },
     });
-    return JSON.parse(response.text);
+    const packet = JSON.parse(response.text);
+    // Pass the scorecard through to be displayed in the packet UI
+    if (requisition.scorecard) {
+        packet.scorecard = requisition.scorecard;
+    }
+    return packet;
 };
 
 export const scoutForTalent = async (jobTitle: string, skills: string, location: string, experience: string): Promise<ScoutedCandidate[]> => {

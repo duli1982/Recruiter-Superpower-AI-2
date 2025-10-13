@@ -5,7 +5,7 @@ import { Spinner } from '../ui/Spinner';
 // FIX: Correct import path for geminiService
 import { generateInterviewPacket } from '../../services/geminiService';
 // FIX: Correct import path for types
-import { Candidate, InterviewStage, JobRequisition, Interview, InterviewStatus, InterviewPacket, InterviewerStatus, Interviewer } from '../../types';
+import { Candidate, InterviewStage, JobRequisition, Interview, InterviewStatus, InterviewPacket, InterviewerStatus, Interviewer, InterviewFeedback, OverallRecommendation } from '../../types';
 // FIX: Correct import path for constants
 import { MOCK_CANDIDATES, MOCK_JOB_REQUISITIONS, MOCK_SCHEDULED_INTERVIEWS } from '../../constants';
 
@@ -18,6 +18,7 @@ const FileTextIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} x
 const AlertCircleIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>;
 const HelpCircleIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>;
 const XCircleIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>;
+const StarIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>;
 
 
 const CANDIDATES_STORAGE_KEY = 'recruiter-ai-candidates';
@@ -69,12 +70,19 @@ const InterviewPacketModal: React.FC<{ packet: InterviewPacket, onClose: () => v
                     <h3 className="font-semibold text-indigo-300 mb-2">Role Summary</h3>
                     <p className="text-sm text-gray-300">{packet.roleSummary}</p>
                 </div>
-                <div>
-                    <h3 className="font-semibold text-indigo-300 mb-2">Key Focus Areas</h3>
-                    <ul className="list-disc list-inside space-y-1 text-sm text-gray-300">
-                        {packet.keyFocusAreas.map((area, i) => <li key={i}>{area}</li>)}
-                    </ul>
-                </div>
+                {packet.scorecard && packet.scorecard.competencies.length > 0 && (
+                    <div>
+                        <h3 className="font-semibold text-indigo-300 mb-2">Interview Scorecard</h3>
+                        <div className="space-y-2 p-3 bg-gray-800 rounded-lg border border-gray-700">
+                            {packet.scorecard.competencies.map(c => (
+                                <div key={c.id}>
+                                    <p className="font-semibold text-gray-200 text-sm">{c.name}</p>
+                                    <p className="text-xs text-gray-400">{c.description}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <h3 className="font-semibold text-indigo-300 mb-2">Suggested Behavioral Questions</h3>
@@ -97,6 +105,84 @@ const InterviewPacketModal: React.FC<{ packet: InterviewPacket, onClose: () => v
     </div>
 );
 
+const FeedbackModal: React.FC<{
+    interview: Interview;
+    job: JobRequisition;
+    onClose: () => void;
+    onSubmit: (interviewId: string, feedback: InterviewFeedback) => void;
+}> = ({ interview, job, onClose, onSubmit }) => {
+    const [feedback, setFeedback] = useState<Omit<InterviewFeedback, 'interviewerName' | 'submissionDate'>>({
+        overallRecommendation: 'Hire',
+        summary: '',
+        ratings: job.scorecard?.competencies.map(c => ({ competencyId: c.id, rating: 0, notes: '' })) || [],
+    });
+
+    const handleRatingChange = (competencyId: string, rating: number) => {
+        setFeedback(prev => ({
+            ...prev,
+            ratings: prev.ratings.map(r => r.competencyId === competencyId ? { ...r, rating } : r),
+        }));
+    };
+
+    const handleNotesChange = (competencyId: string, notes: string) => {
+        setFeedback(prev => ({
+            ...prev,
+            ratings: prev.ratings.map(r => r.competencyId === competencyId ? { ...r, notes } : r),
+        }));
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        const finalFeedback: InterviewFeedback = {
+            ...feedback,
+            interviewerName: interview.interviewers[0]?.name || 'Interviewer',
+            submissionDate: new Date().toISOString(),
+        };
+        onSubmit(interview.id, finalFeedback);
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={onClose}>
+            <form onSubmit={handleSubmit} className="bg-gray-900 border border-gray-700 rounded-lg shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+                <div className="p-6 border-b border-gray-700">
+                    <h3 className="text-lg font-bold text-white">Submit Feedback</h3>
+                    <p className="text-sm text-gray-400">For {job.title}</p>
+                </div>
+                <div className="p-6 space-y-4 overflow-y-auto flex-grow">
+                    {job.scorecard?.competencies.map((comp, index) => (
+                        <div key={comp.id} className="p-3 bg-gray-800 rounded-md">
+                            <p className="font-semibold text-gray-200">{comp.name}</p>
+                            <p className="text-xs text-gray-400 mb-2">{comp.description}</p>
+                            <div className="flex items-center gap-2 mb-2">
+                                {[1, 2, 3, 4, 5].map(star => (
+                                    <button type="button" key={star} onClick={() => handleRatingChange(comp.id, star)}>
+                                        <StarIcon className={`h-6 w-6 transition-colors ${(feedback.ratings[index]?.rating || 0) >= star ? 'text-yellow-400 fill-current' : 'text-gray-600 hover:text-gray-400'}`} />
+                                    </button>
+                                ))}
+                            </div>
+                            <textarea value={feedback.ratings[index]?.notes || ''} onChange={e => handleNotesChange(comp.id, e.target.value)} placeholder="Notes for this competency..." rows={2} className="input-field-sm"></textarea>
+                        </div>
+                    ))}
+                    <div>
+                        <label className="label">Overall Summary</label>
+                        <textarea value={feedback.summary} onChange={e => setFeedback(p => ({...p, summary: e.target.value}))} rows={3} className="input-field" required></textarea>
+                    </div>
+                    <div>
+                        <label className="label">Recommendation</label>
+                        <select value={feedback.overallRecommendation} onChange={e => setFeedback(p => ({...p, overallRecommendation: e.target.value as OverallRecommendation}))} className="input-field">
+                            <option>Strong Hire</option><option>Hire</option><option>No Hire</option><option>Strong No Hire</option>
+                        </select>
+                    </div>
+                </div>
+                <div className="p-6 border-t border-gray-700 flex justify-end gap-3">
+                    <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+                    <Button type="submit">Submit Feedback</Button>
+                </div>
+            </form>
+        </div>
+    );
+};
+
 
 export const CandidateExperienceTab: React.FC = () => {
     const [candidates] = useState<Candidate[]>(() => getInitialData(CANDIDATES_STORAGE_KEY, MOCK_CANDIDATES));
@@ -106,6 +192,7 @@ export const CandidateExperienceTab: React.FC = () => {
     const [isCalendarConnected, setIsCalendarConnected] = useState(true);
     const [selectedPacket, setSelectedPacket] = useState<InterviewPacket | null>(null);
     const [isGeneratingPacket, setIsGeneratingPacket] = useState<string | null>(null); // Store interview ID
+    const [feedbackModalOpen, setFeedbackModalOpen] = useState<Interview | null>(null);
     
     useEffect(() => {
         localStorage.setItem(SCHEDULED_INTERVIEWS_KEY, JSON.stringify(interviews));
@@ -135,6 +222,20 @@ export const CandidateExperienceTab: React.FC = () => {
         } finally {
             setIsGeneratingPacket(null);
         }
+    };
+
+    const handleFeedbackSubmit = (interviewId: string, feedback: InterviewFeedback) => {
+        setInterviews(prev => prev.map(i => {
+            if (i.id === interviewId) {
+                return {
+                    ...i,
+                    feedback: [...(i.feedback || []), feedback],
+                    feedbackSubmitted: true,
+                };
+            }
+            return i;
+        }));
+        setFeedbackModalOpen(null);
     };
 
     const InterviewCard: React.FC<{ interview: Interview, isPast?: boolean }> = ({ interview, isPast = false }) => {
@@ -208,26 +309,30 @@ export const CandidateExperienceTab: React.FC = () => {
             <CardHeader 
                 title={`Feedback Accountability (${interviewsNeedingFeedback.length})`} 
                 icon={<AlertCircleIcon className="text-yellow-400" />}
-                description="Interviews completed but awaiting feedback from the hiring manager."
+                description="Interviews completed but awaiting feedback from the hiring team."
             />
             <div className="mt-2 space-y-3 max-h-60 overflow-y-auto">
                 {interviewsNeedingFeedback.length > 0 ? interviewsNeedingFeedback.map(interview => {
                     const candidate = candidates.find(c => c.id === interview.candidateId);
                     const job = requisitions.find(j => j.id === interview.jobId);
-                    const interviewerName = interview.interviewers[0]?.name || 'Interviewer';
                     return (
                         <div key={interview.id} className="p-3 bg-gray-800 rounded-md flex justify-between items-center">
                             <div>
                                 <p className="font-semibold text-sm text-white">{candidate?.name}</p>
                                 <p className="text-xs text-gray-400">{job?.title}</p>
                             </div>
-                            <Button variant="secondary" className="!text-xs !py-1 !px-2" onClick={() => alert(`Reminder sent to ${interviewerName}!`)}>Nudge</Button>
+                            <Button variant="secondary" className="!text-xs !py-1 !px-2" onClick={() => setFeedbackModalOpen(interview)}>Submit Feedback</Button>
                         </div>
                     );
                 }) : <p className="text-sm text-gray-500 text-center py-4">All feedback is up to date!</p>}
             </div>
         </Card>
     );
+
+    const feedbackJob = useMemo(() => {
+        if (!feedbackModalOpen) return null;
+        return requisitions.find(r => r.id === feedbackModalOpen.jobId);
+    }, [feedbackModalOpen, requisitions]);
 
     return (
         <div>
@@ -286,11 +391,21 @@ export const CandidateExperienceTab: React.FC = () => {
             </div>
 
             {selectedPacket && <InterviewPacketModal packet={selectedPacket} onClose={() => setSelectedPacket(null)} />}
+            {feedbackModalOpen && feedbackJob && (
+                <FeedbackModal 
+                    interview={feedbackModalOpen}
+                    job={feedbackJob}
+                    onClose={() => setFeedbackModalOpen(null)}
+                    onSubmit={handleFeedbackSubmit}
+                />
+            )}
 
             <style>{`
                 .label { display: block; text-transform: uppercase; font-size: 0.75rem; font-weight: 500; color: #9ca3af; margin-bottom: 0.25rem;}
-                .input-field { display: block; width: 100%; background-color: #1f2937; border: 1px solid #4b5563; border-radius: 0.375rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); color: white; padding: 0.5rem 0.75rem; }
-                .input-field:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 1px #6366f1; }
+                .input-field, .input-field-sm { display: block; width: 100%; background-color: #1f2937; border: 1px solid #4b5563; border-radius: 0.375rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); color: white; }
+                .input-field { padding: 0.5rem 0.75rem; }
+                .input-field-sm { padding: 0.375rem 0.625rem; font-size: 0.875rem; }
+                .input-field:focus, .input-field-sm:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 1px #6366f1; }
                 /* Custom scrollbar for content areas */
                 .overflow-y-auto::-webkit-scrollbar { width: 6px; }
                 .overflow-y-auto::-webkit-scrollbar-track { background: transparent; }

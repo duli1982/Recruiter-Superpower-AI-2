@@ -2,9 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
 // FIX: Correct import path for types
-import { Candidate, TagType, AIGroupAnalysisReport, CandidateStatus, ApplicationHistory, RelationshipStatus, CandidateCRM, Touchpoint, TouchpointType, NurtureCadence, NurtureContentType, Attachment, ComplianceInfo } from '../../types';
+import { Candidate, TagType, AIGroupAnalysisReport, CandidateStatus, ApplicationHistory, RelationshipStatus, CandidateCRM, Touchpoint, TouchpointType, NurtureCadence, NurtureContentType, Attachment, ComplianceInfo, Interview, JobRequisition, OverallRecommendation } from '../../types';
 // FIX: Correct import path for constants
-import { MOCK_CANDIDATES } from '../../constants';
+import { MOCK_CANDIDATES, MOCK_SCHEDULED_INTERVIEWS, MOCK_JOB_REQUISITIONS } from '../../constants';
 // FIX: Correct import path for geminiService
 import { analyzeCandidateGroup, getCRMSuggestion } from '../../services/geminiService';
 import { Spinner } from '../ui/Spinner';
@@ -25,11 +25,14 @@ const AlertTriangleIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...pro
 const FileTextIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>;
 const UploadIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>;
 const ShieldCheckIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>;
+const StarIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>;
 // FIX: Added the missing UsersIcon component definition to resolve the "Cannot find name" error.
 const UsersIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>;
 
 const STORAGE_KEY = 'recruiter-ai-candidates';
 const SAVED_SEARCHES_KEY = 'recruiter-ai-saved-searches';
+const INTERVIEWS_KEY = 'recruiter-ai-interviews';
+const REQUISITIONS_KEY = 'recruiter-ai-requisitions';
 
 interface Filters {
     searchQuery: string;
@@ -63,13 +66,15 @@ const BLANK_CANDIDATE: Omit<Candidate, 'id'> = { name: '', email: '', phone: '',
 
 export const CandidateProfilesTab: React.FC = () => {
     const [candidates, setCandidates] = useState<Candidate[]>(() => getInitialData(STORAGE_KEY, MOCK_CANDIDATES));
+    const [interviews] = useState<Interview[]>(() => getInitialData(INTERVIEWS_KEY, MOCK_SCHEDULED_INTERVIEWS));
+    const [requisitions] = useState<JobRequisition[]>(() => getInitialData(REQUISITIONS_KEY, MOCK_JOB_REQUISITIONS));
     const [selectedCandidateId, setSelectedCandidateId] = useState<number | null>(null);
     const [isEditing, setIsEditing] = useState(false);
     const [formState, setFormState] = useState<Omit<Candidate, 'id'> | Candidate>(BLANK_CANDIDATE);
     const [filters, setFilters] = useState<Filters>(BLANK_FILTERS);
     const [showFilters, setShowFilters] = useState(false);
     const [savedSearches, setSavedSearches] = useState<SavedSearch[]>(() => getInitialData(SAVED_SEARCHES_KEY, []));
-    const [activeDetailTab, setActiveDetailTab] = useState<'profile' | 'crm' | 'documents'>('profile');
+    const [activeDetailTab, setActiveDetailTab] = useState<'profile' | 'crm' | 'feedback' | 'documents'>('profile');
 
     // Multi-select and AI summary state
     const [multiSelectIds, setMultiSelectIds] = useState<Set<number>>(new Set());
@@ -318,6 +323,16 @@ export const CandidateProfilesTab: React.FC = () => {
     };
 
     const getScoreColor = (score: number) => score >= 85 ? 'text-green-400' : score >= 70 ? 'text-yellow-400' : 'text-red-400';
+    
+    const RecommendationBadge: React.FC<{ recommendation: OverallRecommendation }> = ({ recommendation }) => {
+        const styles: Record<OverallRecommendation, string> = {
+            'Strong Hire': 'bg-green-500/20 text-green-300',
+            'Hire': 'bg-teal-500/20 text-teal-300',
+            'No Hire': 'bg-yellow-500/20 text-yellow-300',
+            'Strong No Hire': 'bg-red-500/20 text-red-300',
+        };
+        return <span className={`text-xs font-medium px-2 py-1 rounded-full ${styles[recommendation]}`}>{recommendation}</span>;
+    };
 
     const renderProfileDetails = (candidate: Candidate) => (
          <div className="overflow-y-auto flex-1 space-y-4 pr-2 -mr-2">
@@ -393,6 +408,57 @@ export const CandidateProfilesTab: React.FC = () => {
                         )) : <p className="text-sm text-gray-500 text-center py-4">No activities logged.</p>}
                     </div>
                 </div>
+            </div>
+        );
+    };
+
+    const renderFeedbackDetails = (candidate: Candidate) => {
+        const candidateInterviews = interviews.filter(i => i.candidateId === candidate.id && i.feedback && i.feedback.length > 0);
+
+        if (candidateInterviews.length === 0) {
+            return <div className="text-center text-gray-500 py-10">No interview feedback submitted for this candidate.</div>;
+        }
+
+        return (
+            <div className="overflow-y-auto flex-1 space-y-6 pr-2 -mr-2">
+                {candidateInterviews.map(interview => {
+                    const job = requisitions.find(r => r.id === interview.jobId);
+                    return (
+                        <Card key={interview.id} className="bg-gray-800/50">
+                            <h4 className="font-semibold text-gray-200">{interview.stage} for {job?.title}</h4>
+                            <p className="text-xs text-gray-400 mb-3">on {new Date(interview.startTime).toLocaleDateString()}</p>
+                            {interview.feedback?.map((fb, index) => (
+                                <div key={index} className="space-y-4">
+                                    <div className="flex justify-between items-center bg-gray-900/50 p-3 rounded-md">
+                                        <div>
+                                            <p className="font-semibold text-gray-300">{fb.interviewerName}</p>
+                                            <p className="text-xs text-gray-500">Submitted: {new Date(fb.submissionDate).toLocaleDateString()}</p>
+                                        </div>
+                                        <RecommendationBadge recommendation={fb.overallRecommendation} />
+                                    </div>
+                                    <p className="text-sm italic text-gray-300 p-2 border-l-2 border-indigo-500">"{fb.summary}"</p>
+                                    <div>
+                                        <h5 className="text-sm font-semibold text-gray-400 mb-2">Competency Ratings:</h5>
+                                        <div className="space-y-2">
+                                            {fb.ratings.map(r => {
+                                                const competency = job?.scorecard?.competencies.find(c => c.id === r.competencyId);
+                                                return (
+                                                    <div key={r.competencyId} className="p-2 bg-gray-800 rounded">
+                                                        <div className="flex justify-between items-center">
+                                                            <p className="text-sm font-medium text-gray-200">{competency?.name || 'Unknown Competency'}</p>
+                                                            <div className="flex gap-1">{[...Array(5)].map((_, i) => <StarIcon key={i} className={`h-4 w-4 ${i < r.rating ? 'text-yellow-400 fill-current' : 'text-gray-600'}`} />)}</div>
+                                                        </div>
+                                                        {r.notes && <p className="text-xs text-gray-400 mt-1 italic">"{r.notes}"</p>}
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </Card>
+                    );
+                })}
             </div>
         );
     };
@@ -498,12 +564,14 @@ export const CandidateProfilesTab: React.FC = () => {
                             <div className="border-b border-gray-700 mb-4">
                                 <nav className="-mb-px flex space-x-6">
                                     <button onClick={() => setActiveDetailTab('profile')} className={`${activeDetailTab === 'profile' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-gray-400 hover:text-white'} py-2 px-1 border-b-2 font-medium text-sm`}>Profile</button>
-                                    <button onClick={() => setActiveDetailTab('crm')} className={`${activeDetailTab === 'crm' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-gray-400 hover:text-white'} py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}>CRM <HeartIcon className="h-4 w-4"/></button>
+                                    <button onClick={() => setActiveDetailTab('crm')} className={`${activeDetailTab === 'crm' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-gray-400 hover:text-white'} py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}>CRM</button>
+                                    <button onClick={() => setActiveDetailTab('feedback')} className={`${activeDetailTab === 'feedback' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-gray-400 hover:text-white'} py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}>Feedback</button>
                                     <button onClick={() => setActiveDetailTab('documents')} className={`${activeDetailTab === 'documents' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-gray-400 hover:text-white'} py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}>Documents</button>
                                 </nav>
                             </div>
                             {activeDetailTab === 'profile' && renderProfileDetails(selectedCandidate)}
                             {activeDetailTab === 'crm' && renderCrmDetails(selectedCandidate)}
+                            {activeDetailTab === 'feedback' && renderFeedbackDetails(selectedCandidate)}
                             {activeDetailTab === 'documents' && renderDocumentsDetails(selectedCandidate)}
                         </div>
                     ) : null}

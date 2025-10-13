@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Spinner } from '../ui/Spinner';
 // FIX: Correct import path for geminiService
 import { auditJobDescription } from '../../services/geminiService';
-import { MOCK_BIASED_JOB_DESCRIPTION, MOCK_JOB_REQUISITIONS } from '../../constants';
+import { MOCK_BIASED_JOB_DESCRIPTION, MOCK_JOB_REQUISITIONS, MOCK_EEO_DATA, PIPELINE_STAGES } from '../../constants';
 // FIX: Correct import path for types
-import { BiasAuditReport, JobRequisition } from '../../types';
+import { BiasAuditReport, JobRequisition, PipelineStage } from '../../types';
 
 const ShieldCheckIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>;
+const UsersIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>;
+
 
 const getScoreColorRing = (score: number) => {
     if (score >= 85) return 'ring-green-500';
@@ -36,6 +38,91 @@ const getInitialRequisitions = (): JobRequisition[] => {
         console.error("Failed to parse requisitions from localStorage", error);
     }
     return MOCK_JOB_REQUISITIONS;
+};
+
+const EEOAnalytics: React.FC = () => {
+  const [selectedCategory, setSelectedCategory] = useState('Gender');
+  const categories = Object.keys(MOCK_EEO_DATA[PipelineStage.Applied]);
+
+  const funnelData = useMemo(() => {
+    return PIPELINE_STAGES.map(stage => {
+      const stageData = MOCK_EEO_DATA[stage]?.[selectedCategory];
+      if (!stageData) return { stage, data: [], total: 0 };
+      
+      const total = Object.values(stageData).reduce((sum, count) => sum + count, 0);
+      const data = Object.entries(stageData).map(([group, count]) => ({
+        group,
+        count,
+        percentage: total > 0 ? (count / total) * 100 : 0
+      }));
+
+      return { stage, data, total };
+    });
+  }, [selectedCategory]);
+
+  const demographicColors: { [key: string]: string } = {
+    'Male': 'bg-blue-500',
+    'Female': 'bg-teal-500',
+    'Non-binary': 'bg-purple-500',
+    'Undeclared': 'bg-gray-500',
+    'White': 'bg-sky-500',
+    'Asian': 'bg-emerald-500',
+    'Hispanic': 'bg-amber-500',
+    'Black': 'bg-rose-500',
+    'Two or more': 'bg-fuchsia-500',
+  };
+
+  const getBarColor = (group: string) => {
+    return demographicColors[group] || 'bg-indigo-500';
+  }
+
+  return (
+    <Card className="mt-8">
+      <CardHeader 
+        title="EEO Analytics"
+        description="Analyze demographic breakdown at each stage of the hiring pipeline to identify potential bias."
+        icon={<UsersIcon />}
+      />
+      <div className="mt-4">
+        <div className="flex items-center gap-2 mb-4 border-b border-gray-700 pb-2">
+          <label className="text-sm font-medium text-gray-300">Demographic:</label>
+          {categories.map(category => (
+            <button 
+              key={category}
+              onClick={() => setSelectedCategory(category)}
+              className={`px-3 py-1 text-sm rounded-md transition-colors ${selectedCategory === category ? 'bg-indigo-600 text-white' : 'bg-gray-800 hover:bg-gray-700'}`}
+            >
+              {category}
+            </button>
+          ))}
+        </div>
+        
+        <div className="space-y-6">
+          {funnelData.map(({ stage, data, total }) => (
+            <div key={stage}>
+              <h4 className="font-semibold text-gray-200 mb-2">{stage} <span className="text-sm text-gray-400">({total} candidates)</span></h4>
+              <div className="space-y-2">
+                {data.map(({ group, count, percentage }) => (
+                  <div key={group} className="flex items-center gap-4">
+                    <span className="w-32 text-sm text-gray-400 truncate">{group}</span>
+                    <div className="flex-grow bg-gray-700 rounded-full h-5">
+                      <div 
+                        className={`${getBarColor(group)} h-5 rounded-full flex items-center justify-end px-2 text-xs font-bold text-white`}
+                        style={{ width: `${percentage}%` }}
+                      >
+                        {percentage > 10 ? `${percentage.toFixed(0)}%` : ''}
+                      </div>
+                    </div>
+                    <span className="w-12 text-sm text-white text-right">{count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Card>
+  );
 };
 
 
@@ -155,6 +242,7 @@ export const DiversityEthicsTab: React.FC = () => {
                     </div>
                 </div>
             </Card>
+            <EEOAnalytics />
         </div>
     );
 };

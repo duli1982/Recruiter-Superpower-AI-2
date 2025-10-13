@@ -3,7 +3,7 @@ import { Card, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Spinner } from '../ui/Spinner';
 // FIX: Correct import path for types
-import { JobRequisition, JobStatus, ApprovalStep } from '../../types';
+import { JobRequisition, JobStatus, ApprovalStep, ScorecardCompetency } from '../../types';
 import { MOCK_JOB_REQUISITIONS } from '../../constants';
 // FIX: Correct import path for geminiService
 import { getJobRequisitionSuggestion } from '../../services/geminiService';
@@ -16,6 +16,7 @@ const CheckCircleIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props
 const ClockIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
 const XCircleIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>;
 const LockIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>;
+const TrashIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>;
 
 
 const STORAGE_KEY = 'recruiter-ai-requisitions';
@@ -43,7 +44,8 @@ const BLANK_REQUISITION: Omit<JobRequisition, 'id'> = {
         { stage: 'Hiring Manager Approval', approver: 'TBD', status: 'Pending'},
         { stage: 'Finance Approval', approver: 'Alex Rivera', status: 'Pending'},
         { stage: 'VP Approval', approver: 'Jordan Lee', status: 'Pending'},
-    ]
+    ],
+    scorecard: { competencies: [] },
 };
 
 const StatusBadge = ({ status }: { status: JobStatus }) => {
@@ -143,6 +145,32 @@ export const JobRequisitionsTab: React.FC = () => {
         }
     };
     
+    const handleCompetencyChange = (index: number, field: keyof ScorecardCompetency, value: string) => {
+        setEditingReq(prev => {
+            if (!prev || !prev.scorecard) return prev;
+            const newCompetencies = [...prev.scorecard.competencies];
+            newCompetencies[index] = { ...newCompetencies[index], [field]: value };
+            return { ...prev, scorecard: { ...prev.scorecard, competencies: newCompetencies }};
+        });
+    };
+
+    const handleAddCompetency = () => {
+        setEditingReq(prev => {
+            if (!prev) return prev;
+            const newCompetency: ScorecardCompetency = { id: `comp-${Date.now()}`, name: '', description: '' };
+            const scorecard = prev.scorecard ? { ...prev.scorecard, competencies: [...prev.scorecard.competencies, newCompetency] } : { competencies: [newCompetency] };
+            return { ...prev, scorecard };
+        });
+    };
+
+    const handleRemoveCompetency = (index: number) => {
+        setEditingReq(prev => {
+            if (!prev || !prev.scorecard) return prev;
+            const newCompetencies = prev.scorecard.competencies.filter((_, i) => i !== index);
+            return { ...prev, scorecard: { ...prev.scorecard, competencies: newCompetencies }};
+        });
+    };
+
     const ApprovalStepDisplay: React.FC<{ step: ApprovalStep }> = ({ step }) => {
         const icons = {
             'Approved': <CheckCircleIcon className="h-5 w-5 text-green-400" />,
@@ -282,10 +310,18 @@ export const JobRequisitionsTab: React.FC = () => {
                                         </div>
                                     </div>
                                     <div>
-                                        <h4 className="font-semibold text-gray-300 mb-1">Budget</h4>
-                                        <div className="text-sm text-gray-400 bg-gray-800 p-3 rounded-lg border border-gray-700">
-                                            <p><strong>Salary Range:</strong> ${selectedReq.budget.salaryMin.toLocaleString()} - ${selectedReq.budget.salaryMax.toLocaleString()} {selectedReq.budget.currency}</p>
-                                            <p><strong>Budget Code:</strong> {selectedReq.budget.budgetCode}</p>
+                                        <h4 className="font-semibold text-gray-300 mb-1">Interview Scorecard</h4>
+                                        <div className="p-3 bg-gray-800 rounded-lg border border-gray-700 space-y-2">
+                                            {(selectedReq.scorecard?.competencies || []).length > 0 ? (
+                                                selectedReq.scorecard?.competencies.map(c => (
+                                                    <div key={c.id}>
+                                                        <p className="font-semibold text-sm text-gray-200">{c.name}</p>
+                                                        <p className="text-xs text-gray-400">{c.description}</p>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <p className="text-sm text-gray-500">No scorecard defined.</p>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -319,16 +355,27 @@ export const JobRequisitionsTab: React.FC = () => {
                                     <div><label className="label">Department</label><input type="text" name="department" value={editingReq.department} onChange={handleFormChange} className="input-field" required/></div>
                                 </div>
                                 <div><label className="label">Hiring Manager</label><input type="text" name="hiringManager" value={editingReq.hiringManager} onChange={handleFormChange} className="input-field" required/></div>
-                                <div className="border-t border-b border-gray-700 py-4">
-                                    <h4 className="text-md font-semibold text-gray-200 mb-2">Budget</h4>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div><label className="label">Min Salary</label><input type="number" name="budget.salaryMin" value={editingReq.budget.salaryMin} onChange={handleFormChange} className="input-field"/></div>
-                                        <div><label className="label">Max Salary</label><input type="number" name="budget.salaryMax" value={editingReq.budget.salaryMax} onChange={handleFormChange} className="input-field"/></div>
-                                    </div>
-                                    <div className="mt-4"><label className="label">Budget Code</label><input type="text" name="budget.budgetCode" value={editingReq.budget.budgetCode} onChange={handleFormChange} className="input-field"/></div>
-                                </div>
                                 <div><label className="label">Required Skills (comma-separated)</label><input type="text" name="requiredSkills" value={Array.isArray(editingReq.requiredSkills) ? editingReq.requiredSkills.join(', ') : ''} onChange={handleFormChange} className="input-field" /></div>
                                 <div><label className="label">Description</label><textarea name="description" rows={4} value={editingReq.description} onChange={handleFormChange} className="input-field"></textarea></div>
+                                
+                                <div className="border-t border-gray-700 pt-4">
+                                    <h4 className="text-md font-semibold text-gray-200 mb-2">Scorecard Builder</h4>
+                                    <div className="space-y-3">
+                                        {editingReq.scorecard?.competencies.map((comp, index) => (
+                                            <div key={comp.id} className="grid grid-cols-1 gap-2 p-3 bg-gray-800 rounded-md border border-gray-700">
+                                                <div className="flex justify-between items-center">
+                                                    <label className="label">Competency #{index + 1}</label>
+                                                    <button type="button" onClick={() => handleRemoveCompetency(index)} className="text-red-400 hover:text-red-300">
+                                                        <TrashIcon className="h-4 w-4" />
+                                                    </button>
+                                                </div>
+                                                <input type="text" placeholder="Competency Name (e.g., Teamwork)" value={comp.name} onChange={e => handleCompetencyChange(index, 'name', e.target.value)} className="input-field-sm" />
+                                                <textarea placeholder="Description of what you're looking for..." value={comp.description} onChange={e => handleCompetencyChange(index, 'description', e.target.value)} rows={2} className="input-field-sm"></textarea>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <Button type="button" variant="secondary" onClick={handleAddCompetency} icon={<PlusIcon className="h-4 w-4"/>} className="mt-3">Add Competency</Button>
+                                </div>
                             </div>
                         </div>
                         <div className="p-6 bg-gray-800/50 rounded-b-lg flex justify-end gap-3">

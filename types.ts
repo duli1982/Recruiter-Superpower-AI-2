@@ -102,6 +102,7 @@ export type NurtureCadence = 'Monthly' | 'Quarterly' | 'Bi-annual';
 export type NurtureContentType = 'Company News' | 'Industry Insights' | 'Career Tips' | 'New Roles';
 export type InterviewStage = 'Phone Screen' | 'Technical Interview' | 'Final Interview' | 'Hiring Manager Interview';
 export type RefinableSourcingField = 'jobTitle' | 'skills' | 'location';
+export type OverallRecommendation = 'Strong Hire' | 'Hire' | 'No Hire' | 'Strong No Hire';
 
 
 // --- INTERFACES & TYPES ---
@@ -221,6 +222,16 @@ export interface ApprovalStep {
   timestamp?: string;
 }
 
+export interface ScorecardCompetency {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export interface Scorecard {
+  competencies: ScorecardCompetency[];
+}
+
 export interface JobRequisition {
   id: number;
   title: string;
@@ -241,6 +252,7 @@ export interface JobRequisition {
   approvalWorkflow: ApprovalStep[];
   isLocked?: boolean;
   initialRequiredSkills?: string[];
+  scorecard?: Scorecard;
 }
 
 export interface InterviewPacket {
@@ -251,6 +263,7 @@ export interface InterviewPacket {
     behavioral: string[];
     technical: string[];
   };
+  scorecard?: Scorecard;
 }
 
 export interface ScoutedCandidate {
@@ -347,6 +360,18 @@ export interface Interviewer {
   status: InterviewerStatus;
 }
 
+export interface InterviewFeedback {
+  interviewerName: string;
+  submissionDate: string;
+  overallRecommendation: OverallRecommendation;
+  ratings: {
+    competencyId: string;
+    rating: number; // 1-5
+    notes: string;
+  }[];
+  summary: string;
+}
+
 export interface Interview {
   id: string;
   candidateId: number;
@@ -357,6 +382,7 @@ export interface Interview {
   interviewers: Interviewer[];
   status: InterviewStatus;
   feedbackSubmitted: boolean;
+  feedback?: InterviewFeedback[];
 }
 
 export interface CommunityPrompt {
@@ -393,4 +419,14 @@ export interface SentEmail {
   sentAt: string;
   status: EmailStatus;
   abTestVariant?: 'A' | 'B';
+}
+
+export type DemographicData = {
+  [group: string]: number;
+};
+
+export interface EEOData {
+  [stage: string]: {
+    [category: string]: DemographicData;
+  };
 }
