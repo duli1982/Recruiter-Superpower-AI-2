@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Spinner } from '../ui/Spinner';
-import { JobRequisition, Candidate, PipelineStage, SourcingStrategy, TagType, RefinableSourcingField } from '../../types';
+import { JobRequisition, Candidate, PipelineStage, SourcingStrategy, TagType, RefinableSourcingField, BooleanSearchQuery } from '../../types';
 import { MOCK_JOB_REQUISITIONS, MOCK_CANDIDATES, PIPELINE_STAGES, MOCK_PIPELINE_DATA } from '../../constants';
 import { generateSourcingStrategy, refineSourcingStrategy } from '../../services/geminiService';
 
@@ -19,6 +19,9 @@ const TargetIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xml
 const UsersIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>;
 const BarChartIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="20" x2="12" y2="10" /><line x1="18" y1="20" x2="18" y2="4" /><line x1="6" y1="20" x2="6" y2="16" /></svg>;
 const LightbulbIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15.09 16.05A6.5 6.5 0 0 1 8.94 9.9M9 9h.01M4.93 4.93l.01.01M2 12h.01M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0zM12 2v.01M19.07 4.93l-.01.01M22 12h-.01M19.07 19.07l-.01-.01M12 22v-.01" /></svg>;
+const ClipboardIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>;
+const LinkedInIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} viewBox="0 0 24 24" fill="currentColor"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>;
+const GitHubIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>;
 
 const getInitialData = <T,>(key: string, fallback: T): T => {
     try {
@@ -40,46 +43,18 @@ const MetricCard: React.FC<{ title: string; value: string; icon: React.ReactNode
     </div>
 );
 
-const RefineComponent: React.FC<{
-    field: RefinableSourcingField;
-    isRefining: boolean;
-    refiningField: RefinableSourcingField | null;
-    setRefiningField: (field: RefinableSourcingField | null) => void;
-    refinementFeedback: string;
-    setRefinementFeedback: (feedback: string) => void;
-    handleRefineStrategy: (e: React.FormEvent) => void;
-}> = ({ field, isRefining, refiningField, setRefiningField, refinementFeedback, setRefinementFeedback, handleRefineStrategy }) => {
-    const isThisFieldRefining = refiningField === field;
-
-    if (isThisFieldRefining) {
-        return (
-            <form onSubmit={handleRefineStrategy} className="mt-2 space-y-2 p-2 bg-gray-950 rounded-md">
-                <input
-                    type="text"
-                    placeholder="Your feedback, e.g., 'more focus on public APIs'"
-                    value={refinementFeedback}
-                    onChange={(e) => setRefinementFeedback(e.target.value)}
-                    className="input-field-sm w-full"
-                    autoFocus
-                />
-                <div className="flex justify-end gap-2">
-                    <Button type="button" variant="secondary" onClick={() => setRefiningField(null)} className="!text-xs !py-1 !px-2">Cancel</Button>
-                    <Button type="submit" isLoading={isRefining} className="!text-xs !py-1 !px-2">Refine</Button>
-                </div>
-            </form>
-        );
-    }
-
+const CopyButton: React.FC<{ textToCopy: string }> = ({ textToCopy }) => {
+    const [copied, setCopied] = useState(false);
+    const handleCopy = () => {
+        navigator.clipboard.writeText(textToCopy);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+    };
     return (
-        <div className="text-right mt-2">
-            <Button
-                variant="secondary"
-                onClick={() => { setRefiningField(field); setRefinementFeedback(''); }}
-                className="!text-xs !py-1 !px-2"
-            >
-                Suggest Alternatives
-            </Button>
-        </div>
+        <Button onClick={handleCopy} variant="secondary" className="!px-2 !py-1 !text-xs">
+            <ClipboardIcon className="h-4 w-4 mr-1" />
+            {copied ? 'Copied!' : 'Copy'}
+        </Button>
     );
 };
 
@@ -87,123 +62,49 @@ export const PerformanceCreativityTab: React.FC = () => {
     const [requisitions, setRequisitions] = useState<JobRequisition[]>([]);
     const [candidates, setCandidates] = useState<Candidate[]>([]);
     const [pipelineData, setPipelineData] = useState<PipelineData>({});
-
     const [selectedAnalyticsJobId, setSelectedAnalyticsJobId] = useState<number | 'all'>('all');
-    const [selectedSourcingJobId, setSelectedSourcingJobId] = useState<number | undefined>();
+
+    const [searchQuery, setSearchQuery] = useState<BooleanSearchQuery>({
+        jobTitle: 'Senior React Engineer',
+        mustHave: ['React', 'TypeScript'],
+        niceToHave: ['Node.js', 'AWS'],
+        exclude: ['Recruiter', 'Sales'],
+        location: 'San Francisco OR New York OR Remote',
+        currentCompanies: ['Google', 'Meta', 'Netflix'],
+        pastCompanies: [],
+        experience: { min: 5, max: 10 },
+    });
     const [strategy, setStrategy] = useState<SourcingStrategy | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
-    
-    // State for refinement
-    const [refiningField, setRefiningField] = useState<RefinableSourcingField | null>(null);
-    const [refinementFeedback, setRefinementFeedback] = useState('');
-    const [isRefining, setIsRefining] = useState(false);
 
     useEffect(() => {
-        const allReqs = getInitialData(REQUISITIONS_STORAGE_KEY, MOCK_JOB_REQUISITIONS);
-        setRequisitions(allReqs);
+        setRequisitions(getInitialData(REQUISITIONS_STORAGE_KEY, MOCK_JOB_REQUISITIONS));
         setCandidates(getInitialData(CANDIDATES_STORAGE_KEY, MOCK_CANDIDATES));
         setPipelineData(getInitialData(PIPELINE_STORAGE_KEY, MOCK_PIPELINE_DATA));
-
-        const openRequisitions = allReqs.filter(r => r.status === 'Open');
-        if (openRequisitions.length > 0) {
-            setSelectedSourcingJobId(openRequisitions[0].id);
-        }
     }, []);
-
-    const openRequisitions = useMemo(() => requisitions.filter(r => r.status === 'Open'), [requisitions]);
-
-    useEffect(() => {
-        if (!selectedSourcingJobId && openRequisitions.length > 0) {
-            setSelectedSourcingJobId(openRequisitions[0].id);
-        }
-    }, [openRequisitions, selectedSourcingJobId]);
 
     const metrics = useMemo(() => {
         const isAllJobs = selectedAnalyticsJobId === 'all';
         const relevantPipeline = isAllJobs ? pipelineData : { [selectedAnalyticsJobId]: pipelineData[selectedAnalyticsJobId] || {} };
-
-        const hiredCandidatesInPipeline: Set<number> = new Set(
-            (Object.values(relevantPipeline) as JobPipeline[]).flatMap((job) => job[PipelineStage.Hired] || [])
-        );
-        const offerCandidatesInPipeline: Set<number> = new Set(
-             (Object.values(relevantPipeline) as JobPipeline[]).flatMap((job) => job[PipelineStage.Offer] || [])
-        );
-
+        const hiredCandidatesInPipeline: Set<number> = new Set((Object.values(relevantPipeline) as JobPipeline[]).flatMap((job) => job[PipelineStage.Hired] || []));
+        const offerCandidatesInPipeline: Set<number> = new Set((Object.values(relevantPipeline) as JobPipeline[]).flatMap((job) => job[PipelineStage.Offer] || []));
         const totalOffersMade = hiredCandidatesInPipeline.size + offerCandidatesInPipeline.size;
         const offerAcceptanceRate = totalOffersMade > 0 ? (hiredCandidatesInPipeline.size / totalOffersMade) * 100 : 0;
-        
         const hiredCandidatesDetails = candidates.filter(c => hiredCandidatesInPipeline.has(c.id));
-        const sourceCounts = hiredCandidatesDetails.flatMap(c => c.tags || [])
-            .reduce((acc, tag) => {
-                acc[tag] = (acc[tag] || 0) + 1;
-                return acc;
-            }, {} as Record<string, number>);
-
+        const sourceCounts = hiredCandidatesDetails.flatMap(c => c.tags || []).reduce((acc, tag) => ({ ...acc, [tag]: (acc[tag] || 0) + 1 }), {} as Record<string, number>);
         const topSource = Object.entries(sourceCounts).sort(([, countA], [, countB]) => countB - countA)[0]?.[0] || 'N/A';
-        
         const randomSeed = isAllJobs ? 1 : selectedAnalyticsJobId;
         const seededRandom = (max: number, min: number) => Math.floor(Math.sin(randomSeed) * 10000 % 1 * (max - min + 1)) + min;
-
-        return {
-            avgTimeToFill: `${seededRandom(60, 30)} days`,
-            avgTimeToHire: `${seededRandom(30, 15)} days`,
-            offerAcceptanceRate: `${offerAcceptanceRate.toFixed(0)}%`,
-            topSourceOfHire: topSource
-        };
+        return { avgTimeToFill: `${seededRandom(60, 30)} days`, avgTimeToHire: `${seededRandom(30, 15)} days`, offerAcceptanceRate: `${offerAcceptanceRate.toFixed(0)}%`, topSourceOfHire: topSource };
     }, [candidates, pipelineData, selectedAnalyticsJobId]);
     
-    const funnelData = useMemo(() => {
-        const isAllJobs = selectedAnalyticsJobId === 'all';
-        const relevantPipeline = isAllJobs ? pipelineData : { [selectedAnalyticsJobId]: pipelineData[selectedAnalyticsJobId] || {} };
-
-        const stageCounts = PIPELINE_STAGES.reduce((acc, stage) => {
-            acc[stage] = (Object.values(relevantPipeline) as JobPipeline[]).reduce((sum: number, job) => sum + (job[stage]?.length || 0), 0);
-            return acc;
-        }, {} as Record<PipelineStage, number>);
-        
-        const totalApplied = stageCounts[PipelineStage.Applied] || 1;
-        
-        return PIPELINE_STAGES.map((stage, index) => {
-            const count = stageCounts[stage];
-            const prevCount = index > 0 ? stageCounts[PIPELINE_STAGES[index-1]] : count;
-            const stageToStageConversion = prevCount > 0 ? (count / prevCount * 100) : 100;
-            const widthPercentage = (count / totalApplied) * 100;
-            return { stage, count, stageToStageConversion, widthPercentage };
-        });
-    }, [pipelineData, selectedAnalyticsJobId]);
-
-    const sourceEffectiveness = useMemo(() => {
-        const isAllJobs = selectedAnalyticsJobId === 'all';
-        const relevantPipeline = isAllJobs ? pipelineData : { [selectedAnalyticsJobId]: pipelineData[selectedAnalyticsJobId] || {} };
-
-        const hiredIds = new Set((Object.values(relevantPipeline) as JobPipeline[]).flatMap((p) => p[PipelineStage.Hired] || []));
-        const sourceCounts = candidates
-            .filter(c => hiredIds.has(c.id))
-            .flatMap(c => c.tags || [TagType.Passive]) // Default to passive if no tags
-            .reduce((acc: Record<string, number>, tag: string) => {
-                acc[tag] = (acc[tag] || 0) + 1;
-                return acc;
-            }, {} as Record<string, number>);
-
-        const totalHires = (Object.values(sourceCounts) as number[]).reduce((sum, count) => sum + count, 0);
-        return (Object.entries(sourceCounts) as [string, number][]).map(([source, count]) => ({
-            source,
-            count,
-            percentage: totalHires > 0 ? (count / totalHires) * 100 : 0
-        })).sort((a,b) => b.count - a.count);
-    }, [candidates, pipelineData, selectedAnalyticsJobId]);
-
     const handleGenerateStrategy = async () => {
-        if (!selectedSourcingJobId) return;
-        const selectedReq = requisitions.find(r => r.id === selectedSourcingJobId);
-        if (!selectedReq) return;
-
         setIsLoading(true);
         setError('');
         setStrategy(null);
         try {
-            const result = await generateSourcingStrategy(selectedReq);
+            const result = await generateSourcingStrategy(searchQuery);
             setStrategy(result);
         } catch (err) {
             setError(err instanceof Error ? err.message : "An unknown error occurred.");
@@ -211,31 +112,15 @@ export const PerformanceCreativityTab: React.FC = () => {
             setIsLoading(false);
         }
     };
-
-    const handleRefineStrategy = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!refiningField || !strategy || !selectedSourcingJobId || !refinementFeedback) return;
-        
-        const selectedReq = requisitions.find(r => r.id === selectedSourcingJobId);
-        if (!selectedReq) return;
-
-        setIsRefining(true);
-        setError('');
-        try {
-            const refinedPart = await refineSourcingStrategy(selectedReq, strategy, refiningField, refinementFeedback);
-            setStrategy(prev => prev ? { ...prev, ...refinedPart } : null);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "An unknown error occurred during refinement.");
-        } finally {
-            setIsRefining(false);
-            setRefiningField(null);
-            setRefinementFeedback('');
-        }
-    };
     
-    const selectedAnalyticsJob = requisitions.find(r => r.id === selectedAnalyticsJobId);
-    const analyticsTitle = selectedAnalyticsJob ? `Analytics for: ${selectedAnalyticsJob.title}` : 'Performance Analytics (All Jobs)';
-    const funnelDescription = selectedAnalyticsJob ? `Candidate conversion rates for this role.` : `Candidate conversion rates across all roles.`
+    const handleArrayChange = (e: React.ChangeEvent<HTMLInputElement>, field: keyof BooleanSearchQuery) => {
+        const value = e.target.value.split(',').map(s => s.trim());
+        setSearchQuery(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchQuery(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    }
 
     return (
         <div>
@@ -243,16 +128,11 @@ export const PerformanceCreativityTab: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
                 <div className="space-y-6">
                     <Card>
-                        <CardHeader title={analyticsTitle} icon={<BarChartIcon />} />
+                        <CardHeader title={'Performance Analytics'} icon={<BarChartIcon />} />
                         <div className="mt-4 space-y-4">
                              <div>
                                 <label htmlFor="analytics-job-select" className="block text-sm font-medium text-gray-300 mb-1">Select Analysis Scope</label>
-                                <select 
-                                    id="analytics-job-select" 
-                                    value={selectedAnalyticsJobId} 
-                                    onChange={e => setSelectedAnalyticsJobId(e.target.value === 'all' ? 'all' : Number(e.target.value))} 
-                                    className="input-field"
-                                >
+                                <select id="analytics-job-select" value={selectedAnalyticsJobId} onChange={e => setSelectedAnalyticsJobId(e.target.value === 'all' ? 'all' : Number(e.target.value))} className="input-field">
                                     <option value="all">All Jobs (Combined)</option>
                                     {requisitions.map(job => <option key={job.id} value={job.id}>{job.title} ({job.status})</option>)}
                                 </select>
@@ -265,64 +145,20 @@ export const PerformanceCreativityTab: React.FC = () => {
                             </div>
                         </div>
                     </Card>
-                    <Card>
-                        <CardHeader title="Hiring Funnel" description={funnelDescription} />
-                        <div className="mt-4 space-y-2">
-                             {funnelData.map(({ stage, count, stageToStageConversion, widthPercentage }, index) => (
-                                <div key={stage} className="flex items-center gap-2">
-                                    <div className="w-28 text-sm text-gray-300 truncate text-right">{stage}</div>
-                                    <div className="flex-1 bg-gray-800 rounded-full h-6 flex items-center group">
-                                        <div 
-                                            className="bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full h-6 flex items-center justify-between px-2 transition-all duration-500" 
-                                            style={{ width: `${widthPercentage}%` }}
-                                        >
-                                            <span className="text-sm font-bold text-white">{count}</span>
-                                             {index > 0 && count > 0 && 
-                                                <span className="text-xs text-indigo-200 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    {stageToStageConversion.toFixed(0)}%
-                                                </span>
-                                            }
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </Card>
-                     <Card>
-                        <CardHeader title="Source Effectiveness" description="Where your successful hires are coming from." />
-                        <div className="mt-4 space-y-3">
-                            {sourceEffectiveness.length > 0 ? sourceEffectiveness.map(({ source, count, percentage }) => (
-                                <div key={source}>
-                                    <div className="flex justify-between text-sm mb-1">
-                                        <span className="text-gray-300">{source}</span>
-                                        <span className="font-medium text-white">{count} Hires</span>
-                                    </div>
-                                    <div className="w-full bg-gray-700 rounded-full h-2">
-                                        <div className="bg-indigo-500 h-2 rounded-full" style={{ width: `${percentage}%` }}></div>
-                                    </div>
-                                </div>
-                            )) : <p className="text-sm text-gray-500 text-center">No hired candidates for this selection.</p>}
-                        </div>
-                    </Card>
                 </div>
-
                 <div>
                     <Card className="sticky top-8">
-                        <CardHeader title="AI Sourcing Strategist" icon={<LightbulbIcon />} description="Generate creative sourcing ideas for tough-to-fill roles."/>
+                        <CardHeader title="Advanced Sourcing Toolkit" icon={<LightbulbIcon />} description="Build a detailed search query to find your ideal passive candidates."/>
                         <div className="mt-4 space-y-4">
-                             <div>
-                                <label htmlFor="sourcing-job-select" className="block text-sm font-medium text-gray-300 mb-1">Select Open Requisition</label>
-                                <select id="sourcing-job-select" value={selectedSourcingJobId || ''} onChange={e => setSelectedSourcingJobId(Number(e.target.value))} className="input-field">
-                                    {openRequisitions.length > 0 ? (
-                                        openRequisitions.map(job => <option key={job.id} value={job.id}>{job.title}</option>)
-                                    ) : (
-                                        <option>No open requisitions</option>
-                                    )}
-                                </select>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div><label className="label">Job Title</label><input name="jobTitle" value={searchQuery.jobTitle} onChange={handleTextChange} className="input-field-sm" /></div>
+                                <div><label className="label">Location</label><input name="location" value={searchQuery.location} onChange={handleTextChange} className="input-field-sm" /></div>
+                                <div><label className="label">Must-Have Skills (AND)</label><input value={searchQuery.mustHave.join(', ')} onChange={e => handleArrayChange(e, 'mustHave')} placeholder="React, TypeScript" className="input-field-sm" /></div>
+                                <div><label className="label">Nice-to-Have Skills (OR)</label><input value={searchQuery.niceToHave.join(', ')} onChange={e => handleArrayChange(e, 'niceToHave')} placeholder="Node.js, AWS" className="input-field-sm" /></div>
+                                <div><label className="label">Exclude Keywords (NOT)</label><input value={searchQuery.exclude.join(', ')} onChange={e => handleArrayChange(e, 'exclude')} placeholder="Recruiter, Sales" className="input-field-sm" /></div>
+                                <div><label className="label">Current Companies</label><input value={searchQuery.currentCompanies.join(', ')} onChange={e => handleArrayChange(e, 'currentCompanies')} placeholder="Google, Meta" className="input-field-sm" /></div>
                             </div>
-                            <Button onClick={handleGenerateStrategy} isLoading={isLoading} disabled={!selectedSourcingJobId || isLoading} className="w-full">
-                                Generate Sourcing Strategy
-                            </Button>
+                            <Button onClick={handleGenerateStrategy} isLoading={isLoading} disabled={isLoading} className="w-full">Generate Sourcing Strategy</Button>
                         </div>
                         <div className="mt-4">
                             {isLoading && <Spinner text="Brainstorming..." />}
@@ -330,22 +166,24 @@ export const PerformanceCreativityTab: React.FC = () => {
                             {strategy && (
                                 <div className="space-y-6 animate-fade-in overflow-y-auto max-h-[60vh] pr-2">
                                     <div>
-                                        <h4 className="font-semibold text-indigo-300 mb-2">Creative Keywords & Boolean</h4>
-                                        {isRefining && refiningField === 'creativeKeywords' ? <Spinner size="sm" /> :
-                                            <div className="space-y-2">
-                                                {strategy.creativeKeywords.map((kw, i) => <code key={i} className="block text-xs bg-gray-950 p-2 rounded-md text-gray-300">{kw}</code>)}
-                                            </div>
-                                        }
-                                        <RefineComponent field="creativeKeywords" isRefining={isRefining} refiningField={refiningField} setRefiningField={setRefiningField} refinementFeedback={refinementFeedback} setRefinementFeedback={setRefinementFeedback} handleRefineStrategy={handleRefineStrategy} />
+                                        <h4 className="font-semibold text-indigo-300 mb-2">Master Boolean String</h4>
+                                        <div className="flex items-center gap-2 bg-gray-950 p-2 rounded-md">
+                                            <code className="text-xs text-gray-300 flex-grow">{strategy.masterBooleanString}</code>
+                                            <CopyButton textToCopy={strategy.masterBooleanString} />
+                                        </div>
                                     </div>
                                     <div>
-                                        <h4 className="font-semibold text-indigo-300 mb-2">Alternative Job Titles</h4>
-                                         {isRefining && refiningField === 'alternativeJobTitles' ? <Spinner size="sm" /> :
-                                            <div className="flex flex-wrap gap-2">
-                                                {strategy.alternativeJobTitles.map((title, i) => <span key={i} className="bg-gray-700 text-indigo-300 text-xs font-medium px-2.5 py-1 rounded-full">{title}</span>)}
-                                            </div>
-                                        }
-                                        <RefineComponent field="alternativeJobTitles" isRefining={isRefining} refiningField={refiningField} setRefiningField={setRefiningField} refinementFeedback={refinementFeedback} setRefinementFeedback={setRefinementFeedback} handleRefineStrategy={handleRefineStrategy} />
+                                        <h4 className="font-semibold text-indigo-300 mb-2">Platform-Specific Queries</h4>
+                                        <div className="space-y-2">
+                                            {strategy.platformSpecificStrings.map((ps, i) => (
+                                                <div key={i} className="flex items-center gap-2 bg-gray-800 p-2 rounded-md">
+                                                    {ps.platform === 'LinkedIn' && <LinkedInIcon className="h-5 w-5 text-gray-300 flex-shrink-0" />}
+                                                    {ps.platform === 'GitHub' && <GitHubIcon className="h-5 w-5 text-gray-300 flex-shrink-0" />}
+                                                    <code className="text-xs text-gray-300 flex-grow truncate">{ps.query}</code>
+                                                    <CopyButton textToCopy={ps.query} />
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                     <div>
                                         <h4 className="font-semibold text-indigo-300 mb-2">Untapped Sourcing Channels</h4>
@@ -358,13 +196,6 @@ export const PerformanceCreativityTab: React.FC = () => {
                                             ))}
                                         </div>
                                     </div>
-                                    <div>
-                                        <h4 className="font-semibold text-indigo-300 mb-2">Sample Outreach Message</h4>
-                                         {isRefining && refiningField === 'sampleOutreachMessage' ? <Spinner size="sm" /> :
-                                            <p className="text-sm text-gray-300 whitespace-pre-wrap bg-gray-800 p-3 rounded-md border border-gray-700">{strategy.sampleOutreachMessage}</p>
-                                        }
-                                        <RefineComponent field="sampleOutreachMessage" isRefining={isRefining} refiningField={refiningField} setRefiningField={setRefiningField} refinementFeedback={refinementFeedback} setRefinementFeedback={setRefinementFeedback} handleRefineStrategy={handleRefineStrategy} />
-                                    </div>
                                 </div>
                             )}
                         </div>
@@ -372,6 +203,7 @@ export const PerformanceCreativityTab: React.FC = () => {
                 </div>
             </div>
             <style>{`
+                .label { display: block; text-transform: uppercase; font-size: 0.75rem; font-medium; color: #9ca3af; margin-bottom: 0.25rem;}
                 .input-field, .input-field-sm { display: block; width: 100%; background-color: #1f2937; border: 1px solid #4b5563; border-radius: 0.375rem; color: white; padding: 0.5rem 0.75rem; } .input-field:focus, .input-field-sm:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 1px #6366f1; } .input-field-sm { padding: 0.375rem 0.625rem; font-size: 0.875rem; }
                 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } } .animate-fade-in { animation: fade-in 0.5s ease-out forwards; }
             `}</style>

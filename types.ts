@@ -225,7 +225,28 @@ export interface PredictiveAnalysisReport {
 
 export type RefinableSourcingField = 'creativeKeywords' | 'alternativeJobTitles' | 'sampleOutreachMessage';
 
+
+// New types for advanced sourcing and boolean search
+export interface BooleanSearchQuery {
+  mustHave: string[];
+  niceToHave: string[];
+  exclude: string[];
+  jobTitle: string;
+  location: string;
+  currentCompanies: string[];
+  pastCompanies: string[];
+  experience: {
+    min: number;
+    max: number;
+  };
+}
+
 export interface SourcingStrategy {
+  masterBooleanString: string;
+  platformSpecificStrings: {
+    platform: 'LinkedIn' | 'GitHub' | 'General';
+    query: string;
+  }[];
   creativeKeywords: string[];
   alternativeJobTitles: string[];
   untappedChannels: {
