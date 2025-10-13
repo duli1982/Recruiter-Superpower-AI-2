@@ -63,10 +63,11 @@ export const PerformanceCreativityTab: React.FC = () => {
         requisitions.filter(r => r.status === 'Closed').forEach(req => {
             const jobPipeline: JobPipeline = pipelineData[req.id] || {};
             const hiresInJob = jobPipeline.Hired?.length || 0;
-            if (hiresInJob > 0) {
+            // FIX: The `createdAt` property might be missing or invalid if data is loaded from
+            // a malformed localStorage entry. This check ensures we only perform date calculations
+            // when `createdAt` is a valid value, preventing runtime errors and ensuring metric accuracy.
+            if (hiresInJob > 0 && req.createdAt) {
                 totalHires += hiresInJob;
-                // FIX: Added a null check on req.createdAt before calling getTime()
-                // to prevent potential runtime errors if the property is missing.
                 const timeToFill = (new Date().getTime() - new Date(req.createdAt).getTime()) / (1000 * 3600 * 24);
                 totalTimeToFill += timeToFill;
             }

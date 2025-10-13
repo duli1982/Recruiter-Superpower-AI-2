@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { Tab, ViewMode } from './types';
-import { AdminEliminationTab } from './components/tabs/AdminEliminationTab';
+import { AIAssistantTab } from './components/tabs/AIAssistantTab';
 import { InsightJudgmentTab } from './components/tabs/InsightJudgmentTab';
 import { DiversityEthicsTab } from './components/tabs/DiversityEthicsTab';
 import { CandidateProfilesTab } from './components/tabs/CandidateProfilesTab';
@@ -38,7 +38,7 @@ const App: React.FC = () => {
           ? <OperationalDashboardTab /> 
           : <HiringManagerDashboardTab currentUser={currentUser} setActiveTab={setActiveTab} />;
       case Tab.AIAssistant:
-        return <AdminEliminationTab />; // Using AdminEliminationTab for AI Assistant
+        return <AIAssistantTab />;
       case Tab.InsightJudgment:
         return <InsightJudgmentTab />;
       case Tab.DiversityEthics:

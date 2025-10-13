@@ -68,7 +68,16 @@ export const MOCK_CANDIDATES: Candidate[] = [
     source: 'LinkedIn',
     lastContactDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
     applicationHistory: [{ jobTitle: 'Senior Product Manager', dateApplied: '2023-05-10', stageReached: 'Final Interview', outcome: 'In Progress' }],
-    crm: { relationshipStatus: 'Warm', relationshipScore: 85, touchpointHistory: [], nurtureSettings: { autoNurture: true, cadence: 'Monthly', contentType: 'Industry Insights' }, communitySettings: { newsletter: true, eventInvites: true } },
+    crm: { 
+        relationshipStatus: 'Warm', 
+        relationshipScore: 85, 
+        touchpointHistory: [
+            { id: 'tp-1', date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), type: 'Email', notes: 'Sent follow-up email about interview schedule.', author: 'Taylor Kim'},
+            { id: 'tp-2', date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(), type: 'Call', notes: 'Initial phone screen, candidate was very engaged.', author: 'Taylor Kim'}
+        ], 
+        nurtureSettings: { autoNurture: true, cadence: 'Monthly', contentType: 'Industry Insights' }, 
+        communitySettings: { newsletter: true, eventInvites: true } 
+    },
     onboardingChecklist: [
       { id: '1', task: 'Send Welcome Kit', stakeholder: 'HR', completed: true },
       { id: '2', task: 'Provision Laptop', stakeholder: 'IT', completed: true },
@@ -366,5 +375,60 @@ export const MOCK_REFERRALS: Referral[] = [
 ];
 
 
-export const MOCK_SENT_EMAILS: SentEmail[] = [];
-export const MOCK_SEQUENCES: EmailSequence[] = [];
+export const MOCK_SENT_EMAILS: SentEmail[] = [
+  {
+    id: 'email-1',
+    candidateId: 1,
+    candidateName: 'Morgan Lee',
+    jobTitle: 'Senior Product Manager',
+    subject: 'Following up on your application',
+    body: 'Hi Morgan, Just a quick follow-up on your application...',
+    templateType: EmailTemplateType.FollowUp,
+    sentAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    status: EmailStatus.Opened,
+  },
+  {
+    id: 'email-2',
+    candidateId: 2,
+    candidateName: 'Alex Rivera',
+    jobTitle: 'Senior Product Manager',
+    subject: 'Update on your application for Senior Product Manager at Innovate Inc.',
+    body: 'Hi Alex, While your experience is impressive, we decided to move forward with other candidates...',
+    templateType: EmailTemplateType.Rejection,
+    sentAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    status: EmailStatus.Sent,
+  },
+   {
+    id: 'email-3',
+    candidateId: 3,
+    candidateName: 'Casey Chen',
+    jobTitle: 'Senior Product Manager',
+    subject: 'Interview Invitation for Senior Product Manager',
+    body: 'Hi Casey, We were impressed with your background and would like to invite you for an interview...',
+    templateType: EmailTemplateType.InterviewInvite,
+    sentAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    status: EmailStatus.Replied,
+    abTestVariant: 'A',
+  },
+];
+export const MOCK_SEQUENCES: EmailSequence[] = [
+  {
+    id: 'seq-1',
+    name: 'Passive Backend Candidate Nurture',
+    description: 'A 3-step sequence to engage passive backend engineering talent over 30 days.',
+    steps: [
+      { day: 1, subject: 'Connecting with top engineering talent', template: 'Initial Outreach' },
+      { day: 7, subject: '[Company News] Our latest engineering blog post', template: 'Value Add' },
+      { day: 30, subject: 'Checking in', template: 'Follow-up' },
+    ]
+  },
+  {
+    id: 'seq-2',
+    name: 'Silver Medalist Keep-Warm',
+    description: 'A quarterly check-in for high-potential candidates who previously made it to final rounds.',
+    steps: [
+      { day: 1, subject: 'Keeping in touch', template: 'Post-Interview Follow-up' },
+      { day: 90, subject: 'New roles at Innovate Inc.', template: 'New Opportunities' },
+    ]
+  }
+];

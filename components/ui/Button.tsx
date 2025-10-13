@@ -8,7 +8,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 export const Button: React.FC<ButtonProps> = ({ children, isLoading = false, variant = 'primary', icon, ...props }) => {
-  const baseClasses = "inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900 transition-all duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed transform";
+  const baseClasses = "inline-flex items-center justify-center rounded-full px-5 py-2 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900 transition-all duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed transform";
   
   const variantClasses = {
     // New gradient style to match the "Create" button aesthetic from the user's screenshot.

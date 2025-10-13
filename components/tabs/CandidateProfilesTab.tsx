@@ -115,8 +115,13 @@ export const CandidateProfilesTab: React.FC<CandidateProfilesTabProps> = ({ curr
             const candidateIdsInPipeline = new Set<number>();
             managerReqIds.forEach(reqId => {
                 const jobPipeline = pipelineData[reqId] || {};
+                // FIX: Use Array.isArray as a type guard. The type of `candidateIdArray` can be
+                // inferred as `unknown` when using Object.values on a complex type, so this
+                // ensures we only call forEach on an actual array.
                 Object.values(jobPipeline).forEach(candidateIdArray => {
-                    candidateIdArray?.forEach(id => candidateIdsInPipeline.add(id));
+                    if (Array.isArray(candidateIdArray)) {
+                        candidateIdArray.forEach(id => candidateIdsInPipeline.add(id));
+                    }
                 });
             });
             candidatesToFilter = candidates.filter(c => candidateIdsInPipeline.has(c.id));
