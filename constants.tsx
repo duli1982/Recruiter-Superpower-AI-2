@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tab, Candidate, JobRequisition, JobStatus, PipelineStage, TagType, CommunityPrompt, CandidateStatus, EmailSequence, SentEmail, EmailStatus, EmailTemplateType, Interview, InterviewStage, InterviewStatus } from './types';
+import { Tab, Candidate, JobRequisition, JobStatus, PipelineStage, TagType, CommunityPrompt, CandidateStatus, EmailSequence, SentEmail, EmailStatus, EmailTemplateType, Interview, InterviewStage, InterviewStatus, Offer, OfferStatus, ApprovalStatus } from './types';
 
 // SVG Icons as React Components
 const ZapIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></svg>;
@@ -15,6 +15,7 @@ const GridIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns
 const ProfileIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5.52 19c.64-2.2 1.84-3 3.22-3h6.52c1.38 0 2.58.8 3.22 3"/><circle cx="12" cy="10" r="3"/><circle cx="12" cy="12" r="10"/></svg>;
 const BriefcaseIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>;
 const LayoutGridIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect></svg>;
+const HandshakeIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 18L12 15.5 9.5 18"/><path d="M7 10h1.5a2.5 2.5 0 0 1 2.5 2.5V18"/><path d="m14 10-2-3-2 3"/><path d="M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20Z"/><path d="M17 10h-1.5a2.5 2.5 0 0 0-2.5 2.5V18"/></svg>;
 
 
 // FIX: Changed icon type from JSX.Element to React.ReactElement to resolve "Cannot find namespace 'JSX'" error.
@@ -24,6 +25,7 @@ export const TABS: { id: Tab; name: string; icon: React.ReactElement, descriptio
   { id: Tab.JobRequisitions, name: 'Job Requisitions', icon: <BriefcaseIcon className="h-5 w-5" />, description: "Manage and track job statuses with AI-driven suggestions."},
   { id: Tab.CandidateProfiles, name: 'Candidate Profiles', icon: <ProfileIcon className="h-5 w-5" />, description: "View, add, and manage detailed candidate profiles." },
   { id: Tab.CandidatePipeline, name: 'Candidate Pipeline', icon: <LayoutGridIcon className="h-5 w-5" />, description: "Visualize and manage your hiring workflow with a drag-and-drop Kanban board." },
+  { id: Tab.OfferManagement, name: 'Offer Management', icon: <HandshakeIcon className="h-5 w-5" />, description: "Manage offer creation, approvals, and negotiations in one place." },
   { id: Tab.CandidateExperience, name: 'Candidate Experience', icon: <SmileIcon className="h-5 w-5" />, description: "Fix broken processes and deliver a personalized candidate journey."},
   { id: Tab.PerformanceCreativity, name: 'Performance & Creativity', icon: <BarChartIcon className="h-5 w-5" />, description: "Track your performance and get creative sourcing ideas from AI."},
   { id: Tab.AdoptionCommunity, name: 'Adoption & Community', icon: <UsersIcon className="h-5 w-5" />, description: "Learn AI skills and collaborate with peers by sharing prompts."},
@@ -305,14 +307,16 @@ export const PIPELINE_STAGES = [
 export const MOCK_PIPELINE_DATA: { [jobId: number]: { [stage in PipelineStage]?: number[] } } = {
     101: { // Senior Frontend Engineer
         [PipelineStage.Applied]: [4],
-        [PipelineStage.PhoneScreen]: [2],
-        [PipelineStage.TechnicalInterview]: [1, 6],
+        [PipelineStage.PhoneScreen]: [2, 3],
+        [PipelineStage.TechnicalInterview]: [6],
+        [PipelineStage.FinalInterview]: [],
+        [PipelineStage.Offer]: [1],
     },
     102: { // Product Manager
-        [PipelineStage.Applied]: [3],
+        [PipelineStage.Applied]: [],
     },
     105: { // Data Scientist
-        // No candidates yet
+        [PipelineStage.Offer]: [5],
     }
 };
 
@@ -460,5 +464,78 @@ export const MOCK_SCHEDULED_INTERVIEWS: Interview[] = [
         interviewers: ['Alex Johnson'],
         videoLink: 'https://meet.google.com/ghi-jkl-mno',
         reminders: { twentyFourHour: true, oneHour: true, fifteenMin: true }
+    }
+];
+
+export const MOCK_OFFERS: Offer[] = [
+    {
+        id: 'offer-1',
+        candidateId: 4, // Diana Miller
+        jobId: 104, // DevOps Engineer
+        status: OfferStatus.Accepted,
+        startDate: new Date('2024-03-15T00:00:00.000Z').toISOString(),
+        expirationDate: new Date('2024-03-01T00:00:00.000Z').toISOString(),
+        relocationPackage: 0,
+        currentCompensation: { baseSalary: 95000, bonus: 0, equity: { shares: 5000, vestingSchedule: '4-year vest, 1-year cliff' } },
+        approvalChain: [
+// FIX: Replaced ApprovalStatus.Approved with 'Approved' because ApprovalStatus is a type, not an enum.
+            { role: 'Hiring Manager', approver: 'Casey Newton', status: 'Approved', timestamp: new Date('2024-02-20T00:00:00.000Z').toISOString() },
+// FIX: Replaced ApprovalStatus.Approved with 'Approved' because ApprovalStatus is a type, not an enum.
+            { role: 'HR Director', approver: 'Jordan Lee', status: 'Approved', timestamp: new Date('2024-02-21T00:00:00.000Z').toISOString() },
+// FIX: Replaced ApprovalStatus.Approved with 'Approved' because ApprovalStatus is a type, not an enum.
+            { role: 'Finance', approver: 'Alex Rivera', status: 'Approved', timestamp: new Date('2024-02-22T00:00:00.000Z').toISOString() },
+        ],
+        negotiationHistory: [
+            { date: new Date('2024-02-23T00:00:00.000Z').toISOString(), author: 'Company', compensation: { baseSalary: 95000, bonus: 0, equity: { shares: 5000, vestingSchedule: '4-year vest, 1-year cliff' } } }
+        ],
+    },
+    {
+        id: 'offer-2',
+        candidateId: 1, // Alex Johnson
+        jobId: 101, // Senior Frontend Engineer
+        status: OfferStatus.Negotiating,
+        startDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        expirationDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+        relocationPackage: 5000,
+        currentCompensation: { baseSalary: 180000, bonus: 20000, equity: { shares: 10000, vestingSchedule: '4-year vest, 1-year cliff' }, signOnBonus: 10000 },
+        approvalChain: [
+// FIX: Replaced ApprovalStatus.Approved with 'Approved' because ApprovalStatus is a type, not an enum.
+             { role: 'Hiring Manager', approver: 'Casey Newton', status: 'Approved', timestamp: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString() },
+// FIX: Replaced ApprovalStatus.Approved with 'Approved' because ApprovalStatus is a type, not an enum.
+            { role: 'HR Director', approver: 'Jordan Lee', status: 'Approved', timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString() },
+// FIX: Replaced ApprovalStatus.Approved with 'Approved' because ApprovalStatus is a type, not an enum.
+            { role: 'Finance', approver: 'Alex Rivera', status: 'Approved', timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString() },
+// FIX: Replaced ApprovalStatus.Approved with 'Approved' because ApprovalStatus is a type, not an enum.
+            { role: 'CFO', approver: 'Dana Scully', status: 'Approved', timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
+        ],
+        negotiationHistory: [
+            { date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), author: 'Company', compensation: { baseSalary: 175000, bonus: 15000, equity: { shares: 10000, vestingSchedule: '4-year vest, 1-year cliff' } } },
+            { date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), author: 'Candidate', compensation: { baseSalary: 185000, bonus: 20000, equity: { shares: 10000, vestingSchedule: '4-year vest, 1-year cliff' }, signOnBonus: 15000 }, notes: 'Candidate has a competing offer from a FAANG company.' },
+            { date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), author: 'Company', compensation: { baseSalary: 180000, bonus: 20000, equity: { shares: 10000, vestingSchedule: '4-year vest, 1-year cliff' }, signOnBonus: 10000 }, notes: 'Increased salary and added sign-on to match market rate.' }
+        ],
+        competitiveIntel: ["Received a verbal offer from Google for $182K base, but with fewer stock options."]
+    },
+     {
+        id: 'offer-3',
+        candidateId: 5, // Frank Green
+        jobId: 105, // Data Scientist
+        status: OfferStatus.PendingApproval,
+        startDate: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString(),
+        expirationDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+        relocationPackage: 0,
+        currentCompensation: { baseSalary: 170000, bonus: 25000, equity: { shares: 8000, vestingSchedule: '4-year vest, 1-year cliff' } },
+        approvalChain: [
+// FIX: Replaced ApprovalStatus.Approved with 'Approved' because ApprovalStatus is a type, not an enum.
+             { role: 'Hiring Manager', approver: 'Sam Altman', status: 'Approved', timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() },
+// FIX: Replaced ApprovalStatus.Pending with 'Pending' because ApprovalStatus is a type, not an enum.
+            { role: 'HR Director', approver: 'Jordan Lee', status: 'Pending' },
+// FIX: Replaced ApprovalStatus.Pending with 'Pending' because ApprovalStatus is a type, not an enum.
+            { role: 'Finance', approver: 'Alex Rivera', status: 'Pending' },
+// FIX: Replaced ApprovalStatus.Pending with 'Pending' because ApprovalStatus is a type, not an enum.
+            { role: 'CFO', approver: 'Dana Scully', status: 'Pending', notes: 'Offer is above the approved budget range.' },
+        ],
+        negotiationHistory: [
+             { date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), author: 'Company', compensation: { baseSalary: 170000, bonus: 25000, equity: { shares: 8000, vestingSchedule: '4-year vest, 1-year cliff' } } }
+        ],
     }
 ];

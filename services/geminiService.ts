@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type, GenerateContentResponse } from '@google/genai';
-import { Candidate, RankedCandidate, BiasAuditReport, JobRequisition, JobStatus, EmailTemplateType, InterviewStage, ScoutedCandidate, AIGroupAnalysisReport, PredictiveAnalysisReport, SourcingStrategy, RefinableSourcingField, InterviewPacket } from '../types';
+import { Candidate, RankedCandidate, BiasAuditReport, JobRequisition, JobStatus, EmailTemplateType, InterviewStage, ScoutedCandidate, AIGroupAnalysisReport, PredictiveAnalysisReport, SourcingStrategy, RefinableSourcingField, InterviewPacket, Offer } from '../types';
 
 if (!process.env.API_KEY) {
     console.warn("API_KEY environment variable not set. AI features will not work.");
@@ -837,5 +837,86 @@ export const refineSourcingStrategy = async (
     } catch (error) {
         console.error("Error refining sourcing strategy:", error);
         throw new Error(`Failed to refine ${fieldToRefine}. The AI model may have returned an unexpected response.`);
+    }
+};
+
+export const generateOfferLetter = async (candidateName: string, jobTitle: string, offer: Offer, hiringManager: string): Promise<string> => {
+    const prompt = `
+        You are an expert HR professional tasked with generating a formal job offer letter.
+        Use the following details to create a comprehensive and professional offer letter.
+        The company name is "Innovate Inc.".
+
+        Details:
+        - Candidate Name: ${candidateName}
+        - Job Title: ${jobTitle}
+        - Hiring Manager: ${hiringManager}
+        - Start Date: ${new Date(offer.startDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+        - Base Salary: $${offer.currentCompensation.baseSalary.toLocaleString()} per year
+        - Annual Bonus Target: $${offer.currentCompensation.bonus.toLocaleString()}
+        - Sign-On Bonus: $${(offer.currentCompensation.signOnBonus || 0).toLocaleString()} (if greater than 0)
+        - Equity: ${offer.currentCompensation.equity.shares.toLocaleString()} stock options with a ${offer.currentCompensation.equity.vestingSchedule}
+        - Relocation Assistance: $${offer.relocationPackage.toLocaleString()} (if greater than 0)
+        - Offer Expiration Date: ${new Date(offer.expirationDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+
+        Instructions:
+        1.  The letter should be structured professionally with a date, candidate's name and address placeholder, a clear subject line, and a formal salutation.
+        2.  Include paragraphs covering: the position, compensation details (base, bonus, sign-on), equity, start date, and any contingencies (like background check).
+        3.  Ensure the tone is welcoming and enthusiastic.
+        4.  Conclude with instructions on how to accept the offer and a closing from the hiring manager.
+        5.  The output should be the full text of the offer letter.
+    `;
+
+    try {
+        const response: GenerateContentResponse = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+        });
+        return response.text;
+    } catch (error) {
+        console.error("Error generating offer letter:", error);
+        throw new Error("Failed to generate the offer letter. Please try again.");
+    }
+};
+
+export const getNegotiationAdvice = async (offer: Offer, job: JobRequisition, candidate: Candidate): Promise<string[]> => {
+    const prompt = `
+        You are an expert negotiation coach for tech recruiters. Analyze the following negotiation situation and provide 3-4 actionable, strategic bullet points of advice.
+
+        Context:
+        - Job Title: ${job.title}
+        - Role Budget: $${job.budget.salaryMin.toLocaleString()} - $${job.budget.salaryMax.toLocaleString()}
+        - Candidate: ${candidate.name}, ${candidate.experience} years of experience.
+        - Candidate's Salary Expectation (if known): $${(candidate.compensation?.salaryExpectation || 0).toLocaleString()}
+        - Negotiation History: ${JSON.stringify(offer.negotiationHistory)}
+        - Competitive Intelligence (if known): ${offer.competitiveIntel?.join(', ') || 'None'}
+
+        Based on this data, provide concise, expert advice for the recruiter. Focus on how to structure the next counter-offer or how to respond to the candidate's last request. The output must be a JSON array of strings.
+        
+        Example output:
+        [
+          "The candidate's counter of $185k is slightly above the max budget but justifiable given their 10 years of experience and the competing FAANG offer. Recommend getting CFO approval for an exception up to $182k.",
+          "Instead of matching the base salary, consider increasing the sign-on bonus from $10k to $15k. This is a one-time cost and keeps the base salary within the approved band for this level.",
+          "Emphasize the value of our equity grant and faster vesting schedule compared to the competitor's offer. This could be a key non-monetary differentiator.",
+          "Frame the next offer as the 'best and final' to create urgency and signal that there is little room for further negotiation."
+        ]
+    `;
+
+    try {
+        const response: GenerateContentResponse = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.ARRAY,
+                    items: { type: Type.STRING },
+                },
+            },
+        });
+        const jsonText = response.text.trim();
+        return JSON.parse(jsonText) as string[];
+    } catch (error) {
+        console.error("Error generating negotiation advice:", error);
+        throw new Error("Failed to generate negotiation advice.");
     }
 };

@@ -4,6 +4,7 @@ export enum Tab {
   JobRequisitions = 'JOB_REQUISITIONS',
   CandidateProfiles = 'CANDIDATE_PROFILES',
   CandidatePipeline = 'CANDIDATE_PIPELINE',
+  OfferManagement = 'OFFER_MANAGEMENT',
   CandidateExperience = 'CANDIDATE_EXPERIENCE',
   PerformanceCreativity = 'PERFORMANCE_CREATIVITY',
   AdoptionCommunity = 'ADOPTION_COMMUNITY',
@@ -306,4 +307,54 @@ export interface InterviewPacket {
     behavioral: string[];
     technical: string[];
   };
+}
+
+// New types for Offer Management
+export enum OfferStatus {
+  Draft = 'Draft',
+  PendingApproval = 'Pending Approval',
+  Sent = 'Sent',
+  Negotiating = 'Negotiating',
+  Accepted = 'Accepted',
+  Declined = 'Declined',
+  Expired = 'Expired',
+}
+
+export interface OfferCompensation {
+  baseSalary: number;
+  bonus: number;
+  equity: {
+    shares: number;
+    vestingSchedule: string;
+  };
+  signOnBonus?: number;
+}
+
+export interface NegotiationHistoryItem {
+  date: string; // ISO 8601
+  author: 'Company' | 'Candidate';
+  compensation: OfferCompensation;
+  notes?: string;
+}
+
+export interface OfferApprovalStep {
+    role: string;
+    approver: string;
+    status: ApprovalStatus;
+    timestamp?: string; // ISO 8601
+    notes?: string;
+}
+
+export interface Offer {
+  id: string;
+  candidateId: number;
+  jobId: number;
+  status: OfferStatus;
+  startDate: string; // ISO 8601
+  expirationDate: string; // ISO 8601
+  relocationPackage: number;
+  currentCompensation: OfferCompensation;
+  approvalChain: OfferApprovalStep[];
+  negotiationHistory: NegotiationHistoryItem[];
+  competitiveIntel?: string[];
 }

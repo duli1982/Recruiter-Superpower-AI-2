@@ -16,6 +16,7 @@ import { ProactiveSourcingTab } from './components/tabs/ProactiveSourcingTab';
 import { AdoptionCommunityTab } from './components/tabs/AdoptionCommunityTab';
 import { PredictiveAnalyticsTab } from './components/tabs/PredictiveAnalyticsTab';
 import { PerformanceCreativityTab } from './components/tabs/PerformanceCreativityTab';
+import { OfferManagementTab } from './components/tabs/OfferManagementTab';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>(Tab.AIAssistant);
@@ -34,6 +35,8 @@ const App: React.FC = () => {
         return <JobRequisitionsTab />;
       case Tab.CandidatePipeline:
         return <CandidatePipelineTab />;
+      case Tab.OfferManagement:
+        return <OfferManagementTab />;
       case Tab.CandidateExperience:
         return <CandidateExperienceTab />;
       case Tab.IntegrationUpskilling:
