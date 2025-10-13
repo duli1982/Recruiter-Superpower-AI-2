@@ -59,6 +59,7 @@ export interface Candidate {
   };
   visaStatus?: string; // e.g., 'US Citizen', 'H1-B', 'Needs Sponsorship'
   applicationHistory?: ApplicationHistory[];
+  gender?: 'Male' | 'Female' | 'Non-binary' | 'Prefer not to say';
 }
 
 export interface RankedCandidate {
@@ -184,6 +185,8 @@ export interface HiringForecast {
   department: string;
   demandScore: number; // e.g., 0-100
   reasoning: string;
+  predictedTimeToFill: number;
+  estimatedRecruitingCost: number;
 }
 
 export interface SkillGap {
@@ -198,11 +201,25 @@ export interface MarketTrend {
   impact: string;
 }
 
+export interface CompetitiveInsight {
+  observation: string;
+  implication: string;
+}
+
+export interface DiversityMetric {
+  department: string;
+  metric: string; // e.g., "Male Representation"
+  value: string; // e.g., "85%"
+  insight: string;
+}
+
 export interface PredictiveAnalysisReport {
   generatedAt: string; // ISO 8601 string
   hiringForecasts: HiringForecast[];
   skillGaps: SkillGap[];
   marketTrends: MarketTrend[];
+  competitiveIntelligence: CompetitiveInsight[];
+  diversityAnalysis: DiversityMetric[];
 }
 
 export type RefinableSourcingField = 'creativeKeywords' | 'alternativeJobTitles' | 'sampleOutreachMessage';
@@ -215,4 +232,43 @@ export interface SourcingStrategy {
     reasoning:string;
   }[];
   sampleOutreachMessage: string;
+}
+
+// New types for advanced email features
+export enum EmailStatus {
+    Draft = 'Draft',
+    Sent = 'Sent',
+    Opened = 'Opened',
+    Clicked = 'Clicked',
+    Replied = 'Replied',
+    Bounced = 'Bounced',
+}
+
+export interface SentEmail {
+    id: string;
+    candidateId: number;
+    candidateName: string;
+    jobTitle: string;
+    subject: string;
+    body: string;
+    templateType: EmailTemplateType;
+    sentAt: string; // ISO 8601
+    status: EmailStatus;
+    abTestVariant?: 'A' | 'B';
+    sequenceId?: string;
+    sequenceStep?: number;
+}
+
+export interface EmailSequenceStep {
+    day: number;
+    subject: string;
+    keyPoints: string;
+    templateType: EmailTemplateType;
+}
+
+export interface EmailSequence {
+    id: string;
+    name: string;
+    description: string;
+    steps: EmailSequenceStep[];
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tab, Candidate, JobRequisition, JobStatus, PipelineStage, TagType, CommunityPrompt, CandidateStatus } from './types';
+import { Tab, Candidate, JobRequisition, JobStatus, PipelineStage, TagType, CommunityPrompt, CandidateStatus, EmailSequence, SentEmail, EmailStatus, EmailTemplateType } from './types';
 
 // SVG Icons as React Components
 const ZapIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></svg>;
@@ -55,6 +55,7 @@ export const MOCK_CANDIDATES: Candidate[] = [
             negotiationNotes: 'Firm on expectation, but open to sign-on bonus.'
         },
         visaStatus: 'US Citizen',
+        gender: 'Male',
         applicationHistory: [
             { jobId: 101, jobTitle: 'Senior Frontend Engineer', stageReached: 'Technical Interview', dateApplied: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(), outcome: 'In Progress' }
         ]
@@ -78,6 +79,7 @@ export const MOCK_CANDIDATES: Candidate[] = [
             salaryExpectation: 165000,
         },
         visaStatus: 'Green Card',
+        gender: 'Female',
         applicationHistory: [
              { jobId: 103, jobTitle: 'UX/UI Designer', stageReached: 'Initial Screen', dateApplied: new Date(Date.now() - 100 * 24 * 60 * 60 * 1000).toISOString(), outcome: 'Withdrew' }
         ]
@@ -100,6 +102,7 @@ export const MOCK_CANDIDATES: Candidate[] = [
             salaryExpectation: 120000,
         },
         visaStatus: 'H1-B (Transfer)',
+        gender: 'Male',
         applicationHistory: [
             { jobId: 102, jobTitle: 'Product Manager, Growth', stageReached: 'Applied', dateApplied: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), outcome: 'In Progress' }
         ]
@@ -123,9 +126,44 @@ export const MOCK_CANDIDATES: Candidate[] = [
             salaryExpectation: 95000,
         },
         visaStatus: 'Needs Sponsorship (F1-OPT)',
+        gender: 'Female',
         applicationHistory: [
             { jobId: 104, jobTitle: 'DevOps Engineer', stageReached: 'Hired', dateApplied: new Date('2024-01-20T00:00:00.000Z').toISOString(), outcome: 'Hired' }
         ]
+    },
+    { 
+        id: 5, 
+        name: 'Frank Green', 
+        email: 'frank.g@example.com', 
+        phone: '567-890-1234', 
+        skills: 'Kubernetes, Terraform, AWS, CI/CD, Go', 
+        resumeSummary: 'Experienced DevOps Engineer with 7 years in cloud infrastructure and automation. Specializes in Kubernetes orchestration and Infrastructure as Code with Terraform. Proven ability to build scalable and resilient systems on AWS.', 
+        experience: 7, 
+        location: 'Seattle, WA', 
+        availability: '1 Month Notice', 
+        tags: [TagType.Passive],
+        status: CandidateStatus.Passive,
+        lastContactDate: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
+        source: 'LinkedIn Recruiter',
+        gender: 'Male',
+        visaStatus: 'US Citizen',
+    },
+    { 
+        id: 6, 
+        name: 'George Harris', 
+        email: 'george.h@example.com', 
+        phone: '678-901-2345', 
+        skills: 'Python, Django, Microservices, RabbitMQ, Docker', 
+        resumeSummary: 'Senior Backend Engineer with a focus on building distributed systems. Proficient in Python (Django) and designing scalable microservice architectures. Experience with message queuing systems like RabbitMQ and containerization with Docker.', 
+        experience: 9, 
+        location: 'Chicago, IL', 
+        availability: '3 Weeks Notice', 
+        tags: [TagType.Referral],
+        status: CandidateStatus.Interviewing,
+        lastContactDate: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+        source: 'Referral by B. Smith',
+        gender: 'Male',
+        visaStatus: 'Green Card',
     }
 ];
 
@@ -268,7 +306,7 @@ export const MOCK_PIPELINE_DATA: { [jobId: number]: { [stage in PipelineStage]?:
     101: { // Senior Frontend Engineer
         [PipelineStage.Applied]: [4],
         [PipelineStage.PhoneScreen]: [2],
-        [PipelineStage.TechnicalInterview]: [1],
+        [PipelineStage.TechnicalInterview]: [1, 6],
     },
     102: { // Product Manager
         [PipelineStage.Applied]: [3],
@@ -323,4 +361,77 @@ export const MOCK_COMMUNITY_PROMPTS: CommunityPrompt[] = [
         targetFeature: Tab.InsightJudgment,
         tags: ["Ranking", "Frontend", "UI/UX"]
     }
+];
+
+export const MOCK_SEQUENCES: EmailSequence[] = [
+    {
+        id: 'seq-1',
+        name: 'Passive Backend Engineer Outreach',
+        description: 'A 3-step sequence to engage passive backend candidates over 7 days.',
+        steps: [
+            { day: 1, templateType: EmailTemplateType.FollowUp, subject: 'Opportunity at Innovate Inc.', keyPoints: 'Saw your profile, impressed with your Go & K8s work. We are building something exciting in the cloud-native space. Open to a quick chat?' },
+            { day: 4, templateType: EmailTemplateType.FollowUp, subject: 'Re: Opportunity at Innovate Inc.', keyPoints: 'Just wanted to follow up on my previous message. We just released a blog post about our scaling challenges that might interest you. [link]' },
+            { day: 7, templateType: EmailTemplateType.FollowUp, subject: 'Final Follow-up', keyPoints: 'Checking in one last time. If the timing isn\'t right, no worries at all. Feel free to connect on LinkedIn to stay in touch for future opportunities.' },
+        ]
+    },
+    {
+        id: 'seq-2',
+        name: 'Post-Interview Follow-up',
+        description: 'Keep candidates warm after the final interview round.',
+        steps: [
+            { day: 1, templateType: EmailTemplateType.FollowUp, subject: 'Following up on your interview', keyPoints: 'It was great speaking with you! The team was very impressed. We are finalizing our decision process and will have an update for you within 3 business days.' },
+            { day: 4, templateType: EmailTemplateType.FollowUp, subject: 'Quick Update', keyPoints: 'Just a quick note to let you know you are still a top candidate and we appreciate your patience. We expect to have a final decision by tomorrow.' },
+        ]
+    }
+];
+
+export const MOCK_SENT_EMAILS: SentEmail[] = [
+    {
+        id: 'email-1',
+        candidateId: 2,
+        candidateName: 'Brenda Smith',
+        jobTitle: 'Senior Frontend Engineer',
+        subject: 'Re: Your application for Senior Frontend Engineer',
+        body: '...',
+        templateType: EmailTemplateType.FollowUp,
+        sentAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(), // 4 days ago
+        status: EmailStatus.Sent,
+    },
+    {
+        id: 'email-2',
+        candidateId: 1,
+        candidateName: 'Alex Johnson',
+        jobTitle: 'Senior Frontend Engineer',
+        subject: 'Invitation to interview at Innovate Inc.',
+        body: '...',
+        templateType: EmailTemplateType.InterviewInvite,
+        sentAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
+        status: EmailStatus.Opened,
+        abTestVariant: 'A',
+    },
+    {
+        id: 'email-3',
+        candidateId: 3,
+        candidateName: 'Charles Davis',
+        jobTitle: 'Product Manager, Growth',
+        subject: 'An opportunity with our Product team',
+        body: '...',
+        templateType: EmailTemplateType.FollowUp,
+        sentAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
+        status: EmailStatus.Clicked,
+        abTestVariant: 'B',
+        sequenceId: 'seq-1',
+        sequenceStep: 1,
+    },
+    {
+        id: 'email-4',
+        candidateId: 4,
+        candidateName: 'Diana Miller',
+        jobTitle: 'DevOps Engineer',
+        subject: 'Update on your application',
+        body: '...',
+        templateType: EmailTemplateType.Rejection,
+        sentAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(), // 10 days ago
+        status: EmailStatus.Replied,
+    },
 ];

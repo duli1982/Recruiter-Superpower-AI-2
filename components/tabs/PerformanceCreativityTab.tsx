@@ -11,6 +11,7 @@ const CANDIDATES_STORAGE_KEY = 'recruiter-ai-candidates';
 const PIPELINE_STORAGE_KEY = 'recruiter-ai-pipeline';
 
 type PipelineData = { [jobId: number]: { [stage in PipelineStage]?: number[] } };
+type JobPipeline = { [stage in PipelineStage]?: number[] };
 
 // Icons
 const ClockIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
@@ -122,13 +123,9 @@ export const PerformanceCreativityTab: React.FC = () => {
         const isAllJobs = selectedAnalyticsJobId === 'all';
         const relevantPipeline = isAllJobs ? pipelineData : { [selectedAnalyticsJobId]: pipelineData[selectedAnalyticsJobId] || {} };
 
-        // FIX: Cast Object.values to a typed array to resolve type inference issues with flatMap, ensuring arithmetic operations are valid.
-        type JobPipeline = { [stage in PipelineStage]?: number[] };
-        // FIX: Added explicit Set<number> type annotation to correct type inference for .size property.
         const hiredCandidatesInPipeline: Set<number> = new Set(
             (Object.values(relevantPipeline) as JobPipeline[]).flatMap((job) => job[PipelineStage.Hired] || [])
         );
-        // FIX: Added explicit Set<number> type annotation to correct type inference for .size property.
         const offerCandidatesInPipeline: Set<number> = new Set(
              (Object.values(relevantPipeline) as JobPipeline[]).flatMap((job) => job[PipelineStage.Offer] || [])
         );
@@ -161,8 +158,6 @@ export const PerformanceCreativityTab: React.FC = () => {
         const relevantPipeline = isAllJobs ? pipelineData : { [selectedAnalyticsJobId]: pipelineData[selectedAnalyticsJobId] || {} };
 
         const stageCounts = PIPELINE_STAGES.reduce((acc, stage) => {
-            // FIX: Cast Object.values to a typed array to resolve type inference issues with reduce.
-            type JobPipeline = { [stage in PipelineStage]?: number[] };
             acc[stage] = (Object.values(relevantPipeline) as JobPipeline[]).reduce((sum: number, job) => sum + (job[stage]?.length || 0), 0);
             return acc;
         }, {} as Record<PipelineStage, number>);
@@ -182,19 +177,15 @@ export const PerformanceCreativityTab: React.FC = () => {
         const isAllJobs = selectedAnalyticsJobId === 'all';
         const relevantPipeline = isAllJobs ? pipelineData : { [selectedAnalyticsJobId]: pipelineData[selectedAnalyticsJobId] || {} };
 
-        // FIX: Cast Object.values to a typed array to resolve type inference issues with flatMap.
-        type JobPipeline = { [stage in PipelineStage]?: number[] };
         const hiredIds = new Set((Object.values(relevantPipeline) as JobPipeline[]).flatMap((p) => p[PipelineStage.Hired] || []));
         const sourceCounts = candidates
             .filter(c => hiredIds.has(c.id))
             .flatMap(c => c.tags || [TagType.Passive]) // Default to passive if no tags
-            // FIX: Add explicit types to reduce callback to fix type inference issues.
             .reduce((acc: Record<string, number>, tag: string) => {
                 acc[tag] = (acc[tag] || 0) + 1;
                 return acc;
             }, {} as Record<string, number>);
 
-        // FIX: Cast Object.values/entries to typed arrays to fix arithmetic errors.
         const totalHires = (Object.values(sourceCounts) as number[]).reduce((sum, count) => sum + count, 0);
         return (Object.entries(sourceCounts) as [string, number][]).map(([source, count]) => ({
             source,

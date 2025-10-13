@@ -527,20 +527,27 @@ export const analyzeCandidateGroup = async (candidates: Candidate[], jobTitle: s
 
 
 export const generatePredictiveAnalysis = async (requisitions: JobRequisition[], candidates: Candidate[]): Promise<PredictiveAnalysisReport> => {
-    const historicalDataSummary = requisitions.map(r => `Role: ${r.title}, Dept: ${r.department}, Status: ${r.status}`).join('; ');
+    const historicalDataSummary = requisitions.map(r => `Role: ${r.title}, Dept: ${r.department}, Status: ${r.status}, Salary: ${r.budget.salaryMin}-${r.budget.salaryMax}`).join('; ');
     const availableSkillsSummary = [...new Set(candidates.flatMap(c => c.skills.split(',').map(s => s.trim())))].join(', ');
+    const candidateDemographicsSummary = `Total candidates: ${candidates.length}. Gender distribution: ${JSON.stringify(candidates.reduce((acc, c) => {
+        const gender = c.gender || 'Unknown';
+        acc[gender] = (acc[gender] || 0) + 1;
+        return acc;
+    }, {} as Record<string, number>))}.`;
+
 
     const prompt = `
-        You are a strategic workforce planning analyst. Your task is to provide a predictive analysis for a recruiting team based on their historical data and current talent pool. The time horizon is the next 6 months.
+        You are a strategic workforce planning analyst for a C-Level audience. Your task is to provide a predictive analysis for a recruiting team. The time horizon is the next 6 months.
 
         Historical Requisition Data (last 12-18 months):
         ---
         ${historicalDataSummary}
         ---
 
-        Current Talent Pool Skills:
+        Current Talent Pool Skills & Demographics:
         ---
-        ${availableSkillsSummary}
+        Skills: ${availableSkillsSummary}
+        Demographics: ${candidateDemographicsSummary}
         ---
 
         Based on the data provided, generate a predictive report. Your response must be a single JSON object with the following structure:
@@ -549,15 +556,25 @@ export const generatePredictiveAnalysis = async (requisitions: JobRequisition[],
             - roleTitle: The job title (string).
             - department: The department (string).
             - demandScore: A score from 0 to 100 representing the hiring probability/urgency (number).
-            - reasoning: A brief (1-2 sentences) explanation for the forecast, based on hiring trends or department growth.
+            - reasoning: A brief (1-2 sentences) explanation for the forecast.
+            - predictedTimeToFill: A predicted number of days to fill this role, based on market difficulty (integer).
+            - estimatedRecruitingCost: An estimated cost in USD. Assume a standard 20% recruiting fee on the average of the provided salary range for that role.
         - skillGaps: An array of 4-5 objects, identifying the most critical skill gaps. Each object should contain:
             - skill: The specific skill needed (e.g., 'React Native', 'Terraform') (string).
             - demandLevel: 'High' | 'Medium' | 'Low'.
             - supplyLevel: 'High' | 'Medium' | 'Low' | 'Very Low'. Based on the current talent pool.
             - severity: 'Critical' | 'Moderate' | 'Minor'. 'Critical' means high demand and very low supply.
-        - marketTrends: An array of 2-3 objects, providing fictional but plausible external market insights that give context to the forecast. Each object should contain:
+        - marketTrends: An array of 2-3 objects, providing fictional but plausible external market insights. Each object should contain:
             - insight: A concise statement about a market trend (string).
             - impact: A brief explanation of how this trend impacts the company's hiring strategy (string).
+        - competitiveIntelligence: An array of 2-3 fictional but plausible observations about competitors. Each object must have:
+            - observation: A statement about a competitor's hiring activity (e.g., "Competitor X is hiring 30% more frontend engineers").
+            - implication: What this means for our company.
+        - diversityAnalysis: An array of 1-2 objects analyzing the current talent pool. Each object must have:
+            - department: The department being analyzed (e.g., "Engineering" or "Overall").
+            - metric: The diversity metric being reported (e.g., "Male Representation in Pipeline").
+            - value: The percentage value as a string (e.g., "85%").
+            - insight: A brief, actionable insight based on the metric.
     `;
 
     try {
@@ -578,8 +595,10 @@ export const generatePredictiveAnalysis = async (requisitions: JobRequisition[],
                                     department: { type: Type.STRING },
                                     demandScore: { type: Type.NUMBER },
                                     reasoning: { type: Type.STRING },
+                                    predictedTimeToFill: { type: Type.NUMBER },
+                                    estimatedRecruitingCost: { type: Type.NUMBER },
                                 },
-                                required: ["roleTitle", "department", "demandScore", "reasoning"],
+                                required: ["roleTitle", "department", "demandScore", "reasoning", "predictedTimeToFill", "estimatedRecruitingCost"],
                             }
                         },
                         skillGaps: {
@@ -605,9 +624,33 @@ export const generatePredictiveAnalysis = async (requisitions: JobRequisition[],
                                 },
                                 required: ["insight", "impact"],
                             }
+                        },
+                        competitiveIntelligence: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    observation: { type: Type.STRING },
+                                    implication: { type: Type.STRING },
+                                },
+                                required: ["observation", "implication"],
+                            }
+                        },
+                        diversityAnalysis: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    department: { type: Type.STRING },
+                                    metric: { type: Type.STRING },
+                                    value: { type: Type.STRING },
+                                    insight: { type: Type.STRING },
+                                },
+                                required: ["department", "metric", "value", "insight"],
+                            }
                         }
                     },
-                    required: ["hiringForecasts", "skillGaps", "marketTrends"],
+                    required: ["hiringForecasts", "skillGaps", "marketTrends", "competitiveIntelligence", "diversityAnalysis"],
                 },
             },
         });

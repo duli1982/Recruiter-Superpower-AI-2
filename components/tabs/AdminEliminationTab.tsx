@@ -3,7 +3,8 @@ import { Card, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Spinner } from '../ui/Spinner';
 import { generateEmail, parseResume } from '../../services/geminiService';
-import { Candidate, EmailTemplateType } from '../../types';
+// FIX: Add CandidateStatus to imports to satisfy the Candidate type requirements.
+import { Candidate, EmailTemplateType, CandidateStatus } from '../../types';
 import { MOCK_CANDIDATES } from '../../constants';
 
 const UploadIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>;
@@ -34,7 +35,8 @@ const ParsedResumeForm: React.FC<{
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave(formData);
+        // FIX: Add the required 'status' property to the object passed to onSave.
+        onSave({ ...formData, status: CandidateStatus.Passive });
     };
 
     return (
@@ -237,7 +239,7 @@ export const AdminEliminationTab: React.FC = () => {
 
     return (
         <div>
-            <h2 className="text-2xl font-bold text-white mb-6">Admin Elimination</h2>
+            <h2 className="text-2xl font-bold text-white mb-6">AI Assistant</h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <Card>
                     <CardHeader title="Data Entry Eraser" description="Parse resumes to auto-create candidate profiles." icon={<UploadIcon />}/>

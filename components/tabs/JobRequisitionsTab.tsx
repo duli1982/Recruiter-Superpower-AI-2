@@ -25,13 +25,16 @@ const getInitialRequisitions = (): JobRequisition[] => {
     return MOCK_JOB_REQUISITIONS;
 };
 
-const BLANK_REQUISITION: Omit<JobRequisition, 'id' | 'applications' | 'createdAt'> = { 
+// FIX: Update BLANK_REQUISITION to include missing properties `applications` and `createdAt` to match the `Omit<JobRequisition, 'id'>` type.
+const BLANK_REQUISITION: Omit<JobRequisition, 'id'> = { 
     title: '', 
     department: '', 
     status: JobStatus.PendingApproval, 
     requiredSkills: [], 
-    description: '', 
+    description: '',
+    applications: 0,
     hiringManager: '',
+    createdAt: new Date().toISOString(),
     budget: { salaryMin: 0, salaryMax: 0, currency: 'USD', budgetCode: ''},
     approvalWorkflow: [
         { stage: 'Hiring Manager Approval', approver: 'TBD', status: 'Pending'},

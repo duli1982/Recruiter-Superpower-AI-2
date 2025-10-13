@@ -11,6 +11,10 @@ const TrendingUpIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props}
 const AlertTriangleIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>;
 const GlobeIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>;
 const RefreshCwIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 2v6h6"/><path d="M21 12A9 9 0 0 0 6 5.3L3 8"/><path d="M21 22v-6h-6"/><path d="M3 12a9 9 0 0 0 15 6.7l3-2.7"/></svg>;
+const DollarSignIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>;
+const CalendarDaysIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg>;
+const BriefcaseIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>;
+const PieChartIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>;
 
 
 const REQUISITIONS_STORAGE_KEY = 'recruiter-ai-requisitions';
@@ -97,8 +101,9 @@ export const PredictiveAnalyticsTab: React.FC = () => {
                         Generate New Report
                     </Button>
                 </div>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-2 space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                    {/* Left Column */}
+                    <div className="space-y-6">
                         <Card>
                             <CardHeader title="Hiring Demand Forecast (Next 6 Months)" icon={<TrendingUpIcon />} description="AI-predicted roles based on historical hiring velocity and departmental growth." />
                             <div className="mt-4 space-y-4">
@@ -118,6 +123,33 @@ export const PredictiveAnalyticsTab: React.FC = () => {
                                         <div className="w-full bg-gray-700 rounded-full h-2 mt-3">
                                             <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full" style={{ width: `${forecast.demandScore}%` }}></div>
                                         </div>
+                                        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-gray-700 pt-4">
+                                            <div className="flex items-center gap-2">
+                                                <CalendarDaysIcon className="h-5 w-5 text-gray-400" />
+                                                <div>
+                                                    <p className="text-xs text-gray-400">Predicted Time to Fill</p>
+                                                    <p className="font-semibold text-white">{forecast.predictedTimeToFill} days</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <DollarSignIcon className="h-5 w-5 text-gray-400" />
+                                                <div>
+                                                    <p className="text-xs text-gray-400">Est. Recruiting Cost</p>
+                                                    <p className="font-semibold text-white">${forecast.estimatedRecruitingCost.toLocaleString()}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </Card>
+                         <Card>
+                            <CardHeader title="Competitive Intelligence" icon={<BriefcaseIcon />} description="Insights into competitor hiring activities." />
+                            <div className="mt-4 space-y-3">
+                                {report.competitiveIntelligence.map((intel, i) => (
+                                     <div key={i} className="p-3 bg-gray-800 rounded-md">
+                                        <p className="font-semibold text-gray-200">{intel.observation}</p>
+                                        <p className="text-sm text-gray-400 mt-1"><strong className="text-gray-300">Implication:</strong> {intel.implication}</p>
                                     </div>
                                 ))}
                             </div>
@@ -134,7 +166,9 @@ export const PredictiveAnalyticsTab: React.FC = () => {
                             </div>
                         </Card>
                     </div>
-                    <div className="lg:col-span-1">
+
+                    {/* Right Column */}
+                     <div className="space-y-6">
                         <Card>
                             <CardHeader title="Critical Skill Gaps" icon={<AlertTriangleIcon />} description="Skills to prioritize in proactive sourcing campaigns." />
                             <div className="mt-4 space-y-3">
@@ -156,6 +190,26 @@ export const PredictiveAnalyticsTab: React.FC = () => {
                                         </div>
                                     </div>
                                 ))}
+                            </div>
+                        </Card>
+                        <Card>
+                            <CardHeader title="Diversity Pipeline Analysis" icon={<PieChartIcon />} description="A high-level overview of diversity in your current talent pool." />
+                            <div className="mt-4 space-y-4">
+                                {report.diversityAnalysis.map((div, i) => {
+                                    const percentage = parseInt(div.value.replace('%', ''), 10);
+                                    return (
+                                        <div key={i} className="p-3 bg-gray-800 rounded-md">
+                                            <p className="font-semibold text-white">{div.metric} <span className="text-gray-400">({div.department})</span></p>
+                                            <div className="flex items-center gap-4 mt-2">
+                                                <div className="w-full bg-gray-700 rounded-full h-3">
+                                                    <div className="bg-gradient-to-r from-red-500 to-orange-500 h-3 rounded-full" style={{ width: `${percentage}%` }}></div>
+                                                </div>
+                                                <p className="text-lg font-bold text-red-400">{div.value}</p>
+                                            </div>
+                                            <p className="text-xs text-gray-400 mt-2 italic">Insight: {div.insight}</p>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </Card>
                     </div>
