@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type, GenerateContentResponse } from '@google/genai';
-import { Candidate, RankedCandidate, BiasAuditReport, JobRequisition, JobStatus, EmailTemplateType, InterviewStage, ScoutedCandidate, AIGroupAnalysisReport, PredictiveAnalysisReport, SourcingStrategy, RefinableSourcingField } from '../types';
+import { Candidate, RankedCandidate, BiasAuditReport, JobRequisition, JobStatus, EmailTemplateType, InterviewStage, ScoutedCandidate, AIGroupAnalysisReport, PredictiveAnalysisReport, SourcingStrategy, RefinableSourcingField, InterviewPacket } from '../types';
 
 if (!process.env.API_KEY) {
     console.warn("API_KEY environment variable not set. AI features will not work.");
@@ -338,6 +338,63 @@ export const generateSchedulingEmail = async (candidateName: string, jobTitle: s
     } catch (error) {
         console.error("Error generating scheduling email:", error);
         return "Sorry, I encountered an error while generating the email.";
+    }
+};
+
+export const generateInterviewPacket = async (candidate: Candidate, requisition: JobRequisition): Promise<InterviewPacket> => {
+    const prompt = `
+        You are an expert recruitment strategist preparing an interviewer for an upcoming interview. 
+        Your task is to create a concise and insightful interview packet based on the provided candidate and job details.
+
+        Candidate Information:
+        - Name: ${candidate.name}
+        - Skills: ${candidate.skills}
+        - Resume Summary: ${candidate.resumeSummary}
+
+        Job Requisition:
+        - Title: ${requisition.title}
+        - Required Skills: ${requisition.requiredSkills.join(', ')}
+        - Description: ${requisition.description}
+
+        Generate a JSON object with the following structure:
+        - candidateSummary: A 2-3 sentence summary of the candidate's background and why they are being considered for this role.
+        - roleSummary: A 2-3 sentence summary of the core responsibilities and goals of the role.
+        - keyFocusAreas: An array of 3-4 strings highlighting the most important areas to probe during the interview. These should be specific and derived from comparing the candidate's resume to the job requirements (e.g., "Probe deeper into their AWS experience, as it's mentioned but not detailed", "Assess their leadership style for the team lead aspect of the role").
+        - suggestedQuestions: An object with two properties:
+            - behavioral: An array of 4-5 insightful behavioral questions tailored to the role and candidate.
+            - technical: An array of 4-5 relevant technical questions or topics to discuss, based on the required skills.
+    `;
+
+    try {
+        const response: GenerateContentResponse = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        candidateSummary: { type: Type.STRING },
+                        roleSummary: { type: Type.STRING },
+                        keyFocusAreas: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        suggestedQuestions: {
+                            type: Type.OBJECT,
+                            properties: {
+                                behavioral: { type: Type.ARRAY, items: { type: Type.STRING } },
+                                technical: { type: Type.ARRAY, items: { type: Type.STRING } },
+                            },
+                            required: ["behavioral", "technical"],
+                        },
+                    },
+                    required: ["candidateSummary", "roleSummary", "keyFocusAreas", "suggestedQuestions"],
+                },
+            },
+        });
+        const jsonText = response.text.trim();
+        return JSON.parse(jsonText) as InterviewPacket;
+    } catch (error) {
+        console.error("Error generating interview packet:", error);
+        throw new Error("Failed to generate the interview packet. The AI model may have returned an unexpected response.");
     }
 };
 

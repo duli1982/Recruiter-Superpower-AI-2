@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tab, Candidate, JobRequisition, JobStatus, PipelineStage, TagType, CommunityPrompt, CandidateStatus, EmailSequence, SentEmail, EmailStatus, EmailTemplateType } from './types';
+import { Tab, Candidate, JobRequisition, JobStatus, PipelineStage, TagType, CommunityPrompt, CandidateStatus, EmailSequence, SentEmail, EmailStatus, EmailTemplateType, Interview, InterviewStage, InterviewStatus } from './types';
 
 // SVG Icons as React Components
 const ZapIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></svg>;
@@ -434,4 +434,31 @@ export const MOCK_SENT_EMAILS: SentEmail[] = [
         sentAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(), // 10 days ago
         status: EmailStatus.Replied,
     },
+];
+
+export const MOCK_SCHEDULED_INTERVIEWS: Interview[] = [
+    {
+        id: 'interview-1',
+        candidateId: 1,
+        jobId: 101,
+        stage: InterviewStage.FinalRound,
+        status: InterviewStatus.Scheduled,
+        startTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days from now
+        endTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000).toISOString(),
+        interviewers: ['Casey Newton', 'Taylor Smith', 'Jordan Lee'],
+        videoLink: 'https://meet.google.com/xyz-abc-def',
+        reminders: { twentyFourHour: true, oneHour: true, fifteenMin: false }
+    },
+    {
+        id: 'interview-2',
+        candidateId: 6,
+        jobId: 101,
+        stage: InterviewStage.TechnicalInterview,
+        status: InterviewStatus.Completed,
+        startTime: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days ago
+        endTime: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000 + 60 * 60 * 1000).toISOString(),
+        interviewers: ['Alex Johnson'],
+        videoLink: 'https://meet.google.com/ghi-jkl-mno',
+        reminders: { twentyFourHour: true, oneHour: true, fifteenMin: true }
+    }
 ];

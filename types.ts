@@ -272,3 +272,38 @@ export interface EmailSequence {
     description: string;
     steps: EmailSequenceStep[];
 }
+
+// New types for advanced scheduling
+export enum InterviewStatus {
+  Scheduled = 'Scheduled',
+  Completed = 'Completed',
+  Canceled = 'Canceled',
+  NoShow = 'No-Show',
+}
+
+export interface Interview {
+  id: string;
+  candidateId: number;
+  jobId: number;
+  stage: InterviewStage;
+  status: InterviewStatus;
+  startTime: string; // ISO 8601
+  endTime: string; // ISO 8601
+  interviewers: string[];
+  videoLink: string;
+  reminders: {
+    twentyFourHour: boolean;
+    oneHour: boolean;
+    fifteenMin: boolean;
+  };
+}
+
+export interface InterviewPacket {
+  candidateSummary: string;
+  roleSummary: string;
+  keyFocusAreas: string[];
+  suggestedQuestions: {
+    behavioral: string[];
+    technical: string[];
+  };
+}
