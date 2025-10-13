@@ -2,11 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Spinner } from '../ui/Spinner';
-// FIX: Correct import path for geminiService
 import { generateInterviewPacket } from '../../services/geminiService';
-// FIX: Correct import path for types
-import { Candidate, InterviewStage, JobRequisition, Interview, InterviewStatus, InterviewPacket, InterviewerStatus, Interviewer, InterviewFeedback, OverallRecommendation } from '../../types';
-// FIX: Correct import path for constants
+import { Candidate, InterviewStage, JobRequisition, Interview, InterviewStatus, InterviewPacket, InterviewerStatus, Interviewer, InterviewFeedback, OverallRecommendation, ViewMode } from '../../types';
 import { MOCK_CANDIDATES, MOCK_JOB_REQUISITIONS, MOCK_SCHEDULED_INTERVIEWS } from '../../constants';
 
 // Icons
@@ -24,6 +21,11 @@ const StarIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns
 const CANDIDATES_STORAGE_KEY = 'recruiter-ai-candidates';
 const REQUISITIONS_STORAGE_KEY = 'recruiter-ai-requisitions';
 const SCHEDULED_INTERVIEWS_KEY = 'recruiter-ai-interviews';
+
+interface CandidateExperienceTabProps {
+  currentView: ViewMode;
+  currentUser: string;
+}
 
 const getInitialData = <T,>(key: string, fallback: T): T => {
     try {
@@ -108,9 +110,10 @@ const InterviewPacketModal: React.FC<{ packet: InterviewPacket, onClose: () => v
 const FeedbackModal: React.FC<{
     interview: Interview;
     job: JobRequisition;
+    currentUser: string;
     onClose: () => void;
     onSubmit: (interviewId: string, feedback: InterviewFeedback) => void;
-}> = ({ interview, job, onClose, onSubmit }) => {
+}> = ({ interview, job, onClose, onSubmit, currentUser }) => {
     const [feedback, setFeedback] = useState<Omit<InterviewFeedback, 'interviewerName' | 'submissionDate'>>({
         overallRecommendation: 'Hire',
         summary: '',
@@ -135,7 +138,7 @@ const FeedbackModal: React.FC<{
         e.preventDefault();
         const finalFeedback: InterviewFeedback = {
             ...feedback,
-            interviewerName: interview.interviewers[0]?.name || 'Interviewer',
+            interviewerName: currentUser,
             submissionDate: new Date().toISOString(),
         };
         onSubmit(interview.id, finalFeedback);
@@ -184,7 +187,7 @@ const FeedbackModal: React.FC<{
 };
 
 
-export const CandidateExperienceTab: React.FC = () => {
+export const CandidateExperienceTab: React.FC<CandidateExperienceTabProps> = ({ currentView, currentUser }) => {
     const [candidates] = useState<Candidate[]>(() => getInitialData(CANDIDATES_STORAGE_KEY, MOCK_CANDIDATES));
     const [requisitions] = useState<JobRequisition[]>(() => getInitialData(REQUISITIONS_STORAGE_KEY, MOCK_JOB_REQUISITIONS));
     const [interviews, setInterviews] = useState<Interview[]>(() => getInitialData(SCHEDULED_INTERVIEWS_KEY, MOCK_SCHEDULED_INTERVIEWS));
@@ -198,8 +201,22 @@ export const CandidateExperienceTab: React.FC = () => {
         localStorage.setItem(SCHEDULED_INTERVIEWS_KEY, JSON.stringify(interviews));
     }, [interviews]);
     
-    const upcomingInterviews = useMemo(() => interviews.filter(i => new Date(i.startTime) >= new Date()).sort((a,b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()), [interviews]);
-    const pastInterviews = useMemo(() => interviews.filter(i => new Date(i.startTime) < new Date()).sort((a,b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()), [interviews]);
+    const upcomingInterviews = useMemo(() => interviews.filter(i => {
+        const isUpcoming = new Date(i.startTime) >= new Date();
+        if (currentView === 'hiringManager') {
+            return isUpcoming && i.interviewers.some(interviewer => interviewer.name === currentUser);
+        }
+        return isUpcoming;
+    }).sort((a,b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()), [interviews, currentView, currentUser]);
+
+    const pastInterviews = useMemo(() => interviews.filter(i => {
+        const isPast = new Date(i.startTime) < new Date();
+        if (currentView === 'hiringManager') {
+            return isPast && i.interviewers.some(interviewer => interviewer.name === currentUser);
+        }
+        return isPast;
+    }).sort((a,b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()), [interviews, currentView, currentUser]);
+    
     const interviewsNeedingFeedback = useMemo(() => pastInterviews.filter(i => i.status === InterviewStatus.Completed && !i.feedbackSubmitted), [pastInterviews]);
 
     const handleGeneratePacket = async (interviewId: string) => {
@@ -244,6 +261,7 @@ export const CandidateExperienceTab: React.FC = () => {
         if (!candidate || !job) return null;
 
         const handleStatusUpdate = (id: string, status: InterviewStatus) => {
+            if (currentView === 'hiringManager') return;
             setInterviews(prev => prev.map(i => i.id === id ? { ...i, status } : i));
         };
         
@@ -278,28 +296,30 @@ export const CandidateExperienceTab: React.FC = () => {
                     </div>
                 )}
                 
-                <div className="mt-4 pt-3 border-t border-gray-700 flex flex-wrap gap-2 justify-end">
-                    {isPast ? (
-                        <>
-                           <Button variant="secondary" className="!text-xs !py-1 !px-2" onClick={() => handleStatusUpdate(interview.id, InterviewStatus.Completed)}>Mark Completed</Button>
-                           <Button variant="secondary" className="!text-xs !py-1 !px-2" onClick={() => handleStatusUpdate(interview.id, InterviewStatus.NoShow)}>Mark No-Show</Button>
-                        </>
-                    ) : (
-                        <>
-                            <Button
-                                variant="secondary"
-                                className="!text-xs !py-1 !px-2"
-                                onClick={() => handleGeneratePacket(interview.id)}
-                                isLoading={isGeneratingPacket === interview.id}
-                            >
-                                Generate Packet
-                            </Button>
-                            <Button variant="secondary" className="!text-xs !py-1 !px-2" disabled={hasPendingInterviewers} title={hasPendingInterviewers ? "Confirm all interviewers first" : ""}>
-                                Send Invites
-                            </Button>
-                        </>
-                    )}
-                </div>
+                {currentView === 'recruiter' && (
+                    <div className="mt-4 pt-3 border-t border-gray-700 flex flex-wrap gap-2 justify-end">
+                        {isPast ? (
+                            <>
+                               <Button variant="secondary" className="!text-xs !py-1 !px-2" onClick={() => handleStatusUpdate(interview.id, InterviewStatus.Completed)}>Mark Completed</Button>
+                               <Button variant="secondary" className="!text-xs !py-1 !px-2" onClick={() => handleStatusUpdate(interview.id, InterviewStatus.NoShow)}>Mark No-Show</Button>
+                            </>
+                        ) : (
+                            <>
+                                <Button
+                                    variant="secondary"
+                                    className="!text-xs !py-1 !px-2"
+                                    onClick={() => handleGeneratePacket(interview.id)}
+                                    isLoading={isGeneratingPacket === interview.id}
+                                >
+                                    Generate Packet
+                                </Button>
+                                <Button variant="secondary" className="!text-xs !py-1 !px-2" disabled={hasPendingInterviewers} title={hasPendingInterviewers ? "Confirm all interviewers first" : ""}>
+                                    Send Invites
+                                </Button>
+                            </>
+                        )}
+                    </div>
+                )}
             </Card>
         );
     };
@@ -309,7 +329,7 @@ export const CandidateExperienceTab: React.FC = () => {
             <CardHeader 
                 title={`Feedback Accountability (${interviewsNeedingFeedback.length})`} 
                 icon={<AlertCircleIcon className="text-yellow-400" />}
-                description="Interviews completed but awaiting feedback from the hiring team."
+                description="Interviews completed but awaiting feedback."
             />
             <div className="mt-2 space-y-3 max-h-60 overflow-y-auto">
                 {interviewsNeedingFeedback.length > 0 ? interviewsNeedingFeedback.map(interview => {
@@ -338,35 +358,35 @@ export const CandidateExperienceTab: React.FC = () => {
         <div>
             <h2 className="text-2xl font-bold text-white mb-6">Scheduling & Coordination</h2>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Left Column: Scheduling Panel */}
-                <div className="lg:col-span-1 space-y-6">
-                    <FeedbackAccountabilityCard />
-                    <Card>
-                        <CardHeader title="Calendar Sync" icon={<CalendarIcon />} />
-                        <div className="mt-4">
-                            {isCalendarConnected ? (
-                                 <div className="p-3 bg-gray-800 rounded-lg border border-gray-700 flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <CheckCircleIcon className="h-5 w-5 text-green-400" />
-                                        <p className="font-medium text-sm text-white">Google Calendar Connected</p>
+                {currentView === 'recruiter' && (
+                    <div className="lg:col-span-1 space-y-6">
+                        <FeedbackAccountabilityCard />
+                        <Card>
+                            <CardHeader title="Calendar Sync" icon={<CalendarIcon />} />
+                            <div className="mt-4">
+                                {isCalendarConnected ? (
+                                     <div className="p-3 bg-gray-800 rounded-lg border border-gray-700 flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <CheckCircleIcon className="h-5 w-5 text-green-400" />
+                                            <p className="font-medium text-sm text-white">Google Calendar Connected</p>
+                                        </div>
+                                        <button onClick={() => setIsCalendarConnected(false)} className="text-xs text-gray-400 hover:text-white">Disconnect</button>
                                     </div>
-                                    <button onClick={() => setIsCalendarConnected(false)} className="text-xs text-gray-400 hover:text-white">Disconnect</button>
-                                </div>
-                            ) : (
-                                <div className="space-y-3">
-                                    <p className="text-sm text-gray-400">Connect your calendar to automatically check availability and schedule interviews.</p>
-                                    <div className="flex gap-2">
-                                        <Button className="w-full" onClick={() => setIsCalendarConnected(true)}>Connect Google Calendar</Button>
-                                        <Button variant="secondary" className="w-full">Connect Outlook</Button>
+                                ) : (
+                                    <div className="space-y-3">
+                                        <p className="text-sm text-gray-400">Connect your calendar to automatically check availability and schedule interviews.</p>
+                                        <div className="flex gap-2">
+                                            <Button className="w-full" onClick={() => setIsCalendarConnected(true)}>Connect Google Calendar</Button>
+                                            <Button variant="secondary" className="w-full">Connect Outlook</Button>
+                                        </div>
                                     </div>
-                                </div>
-                            )}
-                        </div>
-                    </Card>
-                </div>
+                                )}
+                            </div>
+                        </Card>
+                    </div>
+                )}
                 
-                {/* Right Column: Interview Lists */}
-                <div className="lg:col-span-2 space-y-6">
+                <div className={currentView === 'recruiter' ? 'lg:col-span-2 space-y-6' : 'lg:col-span-3 space-y-6'}>
                     <Card className="max-h-[80vh] flex flex-col">
                         <CardHeader title="Upcoming Interviews" icon={<ClockIcon />} />
                         <div className="mt-2 space-y-4 overflow-y-auto">
@@ -395,6 +415,7 @@ export const CandidateExperienceTab: React.FC = () => {
                 <FeedbackModal 
                     interview={feedbackModalOpen}
                     job={feedbackJob}
+                    currentUser={currentUser}
                     onClose={() => setFeedbackModalOpen(null)}
                     onSubmit={handleFeedbackSubmit}
                 />

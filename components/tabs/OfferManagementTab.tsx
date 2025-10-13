@@ -13,6 +13,7 @@ const XCircleIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xm
 const LightbulbIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15.09 16.05A6.5 6.5 0 0 1 8.94 9.9M9 9h.01M4.93 4.93l.01.01M2 12h.01M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0zM12 2v.01M19.07 4.93l-.01.01M22 12h-.01M19.07 19.07l-.01-.01M12 22v-.01" /></svg>;
 const FileTextIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>;
 const FireIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>;
+const SendIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>;
 
 
 const OFFERS_STORAGE_KEY = 'recruiter-ai-offers';
@@ -69,9 +70,10 @@ export const OfferManagementTab: React.FC = () => {
 
     const [negotiationAdvice, setNegotiationAdvice] = useState<string[]>([]);
     const [isLoadingAdvice, setIsLoadingAdvice] = useState(false);
+    
+    const [isSendModalOpen, setIsSendModalOpen] = useState(false);
     const [offerLetter, setOfferLetter] = useState('');
     const [isLoadingLetter, setIsLoadingLetter] = useState(false);
-
 
     useEffect(() => {
         localStorage.setItem(OFFERS_STORAGE_KEY, JSON.stringify(offers));
@@ -101,8 +103,9 @@ export const OfferManagementTab: React.FC = () => {
         }
     };
     
-    const handleGenerateLetter = async () => {
+    const handleGenerateAndShowLetter = async () => {
         if (!selectedOffer || !selectedJob || !selectedCandidate) return;
+        setIsSendModalOpen(true);
         setIsLoadingLetter(true);
         setOfferLetter('');
         try {
@@ -110,11 +113,44 @@ export const OfferManagementTab: React.FC = () => {
             setOfferLetter(letter);
         } catch(error) {
             alert("Failed to generate offer letter.");
+            setOfferLetter("Error generating letter. Please try again.");
         } finally {
             setIsLoadingLetter(false);
         }
     };
 
+    const handleSendOffer = () => {
+        if (!selectedOfferId) return;
+        setOffers(prev => prev.map(o => o.id === selectedOfferId ? { ...o, status: OfferStatus.Sent } : o));
+        setIsSendModalOpen(false);
+    };
+
+    const allApprovalsComplete = useMemo(() => {
+        return selectedOffer?.approvalChain.every(step => step.status === ApprovalStatus.Approved) || false;
+    }, [selectedOffer]);
+    
+    const canSendOffer = selectedOffer?.status === OfferStatus.PendingApproval && allApprovalsComplete;
+
+    const SendOfferModal = () => (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => setIsSendModalOpen(false)}>
+            <Card className="w-full max-w-3xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                <CardHeader title="Generate & Send Offer" icon={<FileTextIcon />} />
+                <div className="overflow-y-auto pr-2 -mr-4 mt-2 flex-grow">
+                    {isLoadingLetter ? <Spinner text="Generating formal offer letter..."/> : (
+                        <pre className="text-sm text-gray-300 whitespace-pre-wrap font-sans bg-gray-800 p-4 rounded-md border border-gray-700">
+                            {offerLetter}
+                        </pre>
+                    )}
+                </div>
+                <div className="mt-6 pt-4 border-t border-gray-700 flex justify-end gap-3">
+                    <Button variant="secondary" onClick={() => setIsSendModalOpen(false)}>Cancel</Button>
+                    <Button onClick={handleSendOffer} disabled={isLoadingLetter} icon={<SendIcon className="h-4 w-4"/>}>
+                        Send via E-Sign
+                    </Button>
+                </div>
+            </Card>
+        </div>
+    );
 
     return (
         <div>
@@ -158,6 +194,18 @@ export const OfferManagementTab: React.FC = () => {
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 overflow-y-auto flex-grow -mr-4 pr-3">
                                 {/* Left Column: Negotiation & Actions */}
                                 <div className="md:col-span-2 space-y-6">
+                                    {canSendOffer && (
+                                        <Card className="bg-green-900/30 border-green-500/50">
+                                            <div className="flex items-center gap-4">
+                                                <CheckCircleIcon className="h-8 w-8 text-green-400 flex-shrink-0"/>
+                                                <div>
+                                                    <h4 className="font-semibold text-white">Offer Approved</h4>
+                                                    <p className="text-sm text-green-200">This offer has received all necessary approvals and is ready to be sent to the candidate.</p>
+                                                </div>
+                                            </div>
+                                            <Button onClick={handleGenerateAndShowLetter} className="w-full mt-4">Generate & Send Offer</Button>
+                                        </Card>
+                                    )}
                                     {selectedOffer.competitiveIntel && selectedOffer.competitiveIntel.length > 0 && (
                                         <Card className="border-red-500/50 bg-red-900/20">
                                             <CardHeader title="Urgency Indicator" icon={<FireIcon className="text-red-400"/>} />
@@ -187,15 +235,6 @@ export const OfferManagementTab: React.FC = () => {
                                             </ul>
                                         )}
                                     </Card>
-                                    <div>
-                                        <h4 className="font-semibold text-gray-200 mb-2">Offer Letter</h4>
-                                        <Button onClick={handleGenerateLetter} isLoading={isLoadingLetter} icon={<FileTextIcon/>}>Generate Offer Letter</Button>
-                                        {offerLetter && (
-                                            <div className="mt-4 p-4 bg-gray-800 rounded-md border border-gray-700 max-h-60 overflow-y-auto">
-                                                <pre className="text-xs text-gray-300 whitespace-pre-wrap font-sans">{offerLetter}</pre>
-                                            </div>
-                                        )}
-                                    </div>
                                 </div>
                                 {/* Right Column: Approvals */}
                                 <div>
@@ -211,6 +250,7 @@ export const OfferManagementTab: React.FC = () => {
                     )}
                 </Card>
             </div>
+             {isSendModalOpen && <SendOfferModal />}
              <style>{`
                 .input-field { display: block; width: 100%; background-color: #1f2937; border: 1px solid #4b5563; border-radius: 0.375rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); color: white; padding: 0.5rem 0.75rem; }
                 .input-field:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 1px #6366f1; }

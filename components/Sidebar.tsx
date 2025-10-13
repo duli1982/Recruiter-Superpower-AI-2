@@ -1,15 +1,16 @@
 import React from 'react';
-// FIX: Correct import path for types
-import { Tab } from '../types';
-// FIX: Correct import path for constants
-import { TABS } from '../constants';
+import { Tab, ViewMode } from '../types';
+import { TABS, MANAGER_TABS } from '../constants';
 
 interface SidebarProps {
   activeTab: Tab;
   setActiveTab: (tab: Tab) => void;
+  currentView: ViewMode;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, currentView }) => {
+  const tabsToRender = currentView === 'recruiter' ? TABS : MANAGER_TABS;
+  
   return (
     <aside className="w-64 flex-shrink-0 bg-gray-900 border-r border-gray-700 flex flex-col">
       <div className="h-16 flex items-center justify-center px-4 border-b border-gray-700">
@@ -17,7 +18,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
       </div>
       <nav className="flex-1 overflow-y-auto p-4">
         <ul className="space-y-1">
-          {TABS.map((tab) => (
+          {tabsToRender.map((tab) => (
             <li key={tab.id}>
               <a
                 href="#"
@@ -31,7 +32,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
                     : 'text-gray-400 hover:bg-gray-800 hover:text-white'
                 }`}
               >
-                {/* FIX: Cast icon to allow passing className prop without type errors. */}
                 {React.cloneElement(tab.icon as React.ReactElement<any>, { className: 'h-5 w-5 flex-shrink-0' })}
                 <span className="truncate">{tab.name}</span>
               </a>

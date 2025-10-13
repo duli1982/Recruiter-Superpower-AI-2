@@ -2,10 +2,8 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Card, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Spinner } from '../ui/Spinner';
-// FIX: Correct import path for types
-import { JobRequisition, JobStatus, ApprovalStep, ScorecardCompetency } from '../../types';
+import { JobRequisition, JobStatus, ApprovalStep, ScorecardCompetency, ViewMode } from '../../types';
 import { MOCK_JOB_REQUISITIONS } from '../../constants';
-// FIX: Correct import path for geminiService
 import { getJobRequisitionSuggestion } from '../../services/geminiService';
 
 const PlusIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>;
@@ -29,7 +27,6 @@ const getInitialRequisitions = (): JobRequisition[] => {
     return MOCK_JOB_REQUISITIONS;
 };
 
-// FIX: Update BLANK_REQUISITION to include missing properties `applications` and `createdAt` to match the `Omit<JobRequisition, 'id'>` type.
 const BLANK_REQUISITION: Omit<JobRequisition, 'id'> = { 
     title: '', 
     department: '', 
@@ -47,6 +44,11 @@ const BLANK_REQUISITION: Omit<JobRequisition, 'id'> = {
     ],
     scorecard: { competencies: [] },
 };
+
+interface JobRequisitionsTabProps {
+  currentView: ViewMode;
+  currentUser: string;
+}
 
 const StatusBadge = ({ status }: { status: JobStatus }) => {
     const colorClasses = {
@@ -66,14 +68,14 @@ const getDaysSince = (dateString: string) => {
 };
 
 
-export const JobRequisitionsTab: React.FC = () => {
+export const JobRequisitionsTab: React.FC<JobRequisitionsTabProps> = ({ currentView, currentUser }) => {
     const [requisitions, setRequisitions] = useState<JobRequisition[]>(getInitialRequisitions);
     const [filters, setFilters] = useState({ status: 'All', department: 'All' });
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingReq, setEditingReq] = useState<Omit<JobRequisition, 'id'> | JobRequisition | null>(null);
     const [aiSuggestion, setAiSuggestion] = useState<string>('');
     const [isLoadingSuggestion, setIsLoadingSuggestion] = useState<boolean>(false);
-    const [selectedReqId, setSelectedReqId] = useState<number | null>(requisitions[0]?.id || null);
+    const [selectedReqId, setSelectedReqId] = useState<number | null>(null);
 
     useEffect(() => {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(requisitions));
@@ -84,11 +86,27 @@ export const JobRequisitionsTab: React.FC = () => {
     const departments = useMemo(() => ['All', ...Array.from(new Set(requisitions.map(r => r.department)))], [requisitions]);
 
     const filteredRequisitions = useMemo(() => {
-        return requisitions.filter(req => 
+        let reqs = requisitions.filter(req => 
             (filters.status === 'All' || req.status === filters.status) &&
             (filters.department === 'All' || req.department === filters.department)
         );
-    }, [requisitions, filters]);
+
+        if (currentView === 'hiringManager') {
+            reqs = reqs.filter(req => req.hiringManager === currentUser);
+        }
+
+        return reqs;
+    }, [requisitions, filters, currentView, currentUser]);
+
+    // Effect to select the first item when filter/view changes
+    useEffect(() => {
+      if (filteredRequisitions.length > 0) {
+        setSelectedReqId(filteredRequisitions[0].id);
+      } else {
+        setSelectedReqId(null);
+      }
+    }, [filteredRequisitions]);
+
 
     const handleStatusChange = async (id: number, newStatus: JobStatus) => {
         const req = requisitions.find(r => r.id === id);
@@ -111,7 +129,7 @@ export const JobRequisitionsTab: React.FC = () => {
 
     const handleSave = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!editingReq) return;
+        if (!editingReq || currentView === 'hiringManager') return;
 
         if ('id' in editingReq) { // Editing
             setRequisitions(prev => prev.map(r => r.id === (editingReq as JobRequisition).id ? (editingReq as JobRequisition) : r));
@@ -235,7 +253,7 @@ export const JobRequisitionsTab: React.FC = () => {
         <div className="h-[calc(100vh-11rem)]">
             <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold text-white">Manage Requisitions</h2>
-                <Button onClick={() => { setEditingReq(BLANK_REQUISITION); setIsModalOpen(true); }} icon={<PlusIcon />}>Create</Button>
+                {currentView === 'recruiter' && <Button onClick={() => { setEditingReq(BLANK_REQUISITION); setIsModalOpen(true); }} icon={<PlusIcon />}>Create</Button>}
             </div>
             {(aiSuggestion || isLoadingSuggestion) && (
                 <Card className="mb-4 bg-indigo-900/50 border-indigo-700">
@@ -268,7 +286,6 @@ export const JobRequisitionsTab: React.FC = () => {
                                 <div key={req.id} onClick={() => setSelectedReqId(req.id)} className={`p-3 rounded-lg cursor-pointer transition-colors ${selectedReqId === req.id ? 'bg-indigo-600/30 border-indigo-500' : 'bg-gray-800 hover:bg-gray-700/50 border-gray-700'} border`}>
                                     <div className="flex justify-between items-start">
                                         <div className="flex items-center gap-2">
-                                            {/* FIX: Wrapped LockIcon in a span with a title attribute to provide a tooltip, resolving the SVG prop type error. */}
                                             {req.isLocked && <span title="Requirements Locked"><LockIcon className="h-3 w-3 text-gray-400 flex-shrink-0" /></span>}
                                             <p className="font-semibold text-white truncate pr-2">{req.title}</p>
                                         </div>
@@ -294,7 +311,7 @@ export const JobRequisitionsTab: React.FC = () => {
                                     <h3 className="text-xl font-bold text-white">{selectedReq.title}</h3>
                                     <p className="text-sm text-indigo-400">{selectedReq.department}</p>
                                 </div>
-                                <Button onClick={() => { setEditingReq(selectedReq); setIsModalOpen(true); }} variant="secondary" icon={<EditIcon className="h-4 w-4"/>}>Edit</Button>
+                                {currentView === 'recruiter' && <Button onClick={() => { setEditingReq(selectedReq); setIsModalOpen(true); }} variant="secondary" icon={<EditIcon className="h-4 w-4"/>}>Edit</Button>}
                             </div>
                             <div className="overflow-y-auto flex-grow grid grid-cols-1 md:grid-cols-3 gap-6 -mr-4 pr-3">
                                 <div className="md:col-span-2 space-y-4">

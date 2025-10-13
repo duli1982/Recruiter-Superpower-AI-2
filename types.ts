@@ -15,6 +15,9 @@ export enum Tab {
   CandidateExperience = 'candidate-experience',
   ProactiveSourcing = 'proactive-sourcing',
   OfferManagement = 'offer-management',
+  Onboarding = 'onboarding',
+  EmployeeReferrals = 'employee-referrals',
+  InternalMobility = 'internal-mobility',
   PerformanceCreativity = 'performance-creativity',
   PredictiveAnalytics = 'predictive-analytics',
   IntegrationUpskilling = 'integration-upskilling',
@@ -103,6 +106,7 @@ export type NurtureContentType = 'Company News' | 'Industry Insights' | 'Career 
 export type InterviewStage = 'Phone Screen' | 'Technical Interview' | 'Final Interview' | 'Hiring Manager Interview';
 export type RefinableSourcingField = 'jobTitle' | 'skills' | 'location';
 export type OverallRecommendation = 'Strong Hire' | 'Hire' | 'No Hire' | 'Strong No Hire';
+export type ViewMode = 'recruiter' | 'hiringManager';
 
 
 // --- INTERFACES & TYPES ---
@@ -184,6 +188,10 @@ export interface Candidate {
   compliance?: ComplianceInfo;
   onboardingChecklist?: OnboardingTask[];
   hasCompetingOffer?: boolean;
+  referrer?: {
+    name: string;
+    employeeId: string;
+  };
 }
 
 export interface RankedCandidate extends Candidate {
@@ -253,6 +261,7 @@ export interface JobRequisition {
   isLocked?: boolean;
   initialRequiredSkills?: string[];
   scorecard?: Scorecard;
+  internalOnly?: boolean;
 }
 
 export interface InterviewPacket {
@@ -429,4 +438,18 @@ export interface EEOData {
   [stage: string]: {
     [category: string]: DemographicData;
   };
+}
+
+export type ReferralStatus = 'In Review' | 'Rejected' | PipelineStage;
+
+export interface Referral {
+  id: string;
+  referrerName: string;
+  candidateName: string;
+  candidateEmail: string;
+  jobId: number;
+  submittedDate: string;
+  status: ReferralStatus;
+  bonusAmount: number;
+  bonusStatus: 'Eligible on Hire' | 'Paid' | 'Not Eligible';
 }

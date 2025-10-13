@@ -1,11 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
-// FIX: Correct import path for types
-import { Candidate, TagType, AIGroupAnalysisReport, CandidateStatus, ApplicationHistory, RelationshipStatus, CandidateCRM, Touchpoint, TouchpointType, NurtureCadence, NurtureContentType, Attachment, ComplianceInfo, Interview, JobRequisition, OverallRecommendation } from '../../types';
-// FIX: Correct import path for constants
-import { MOCK_CANDIDATES, MOCK_SCHEDULED_INTERVIEWS, MOCK_JOB_REQUISITIONS } from '../../constants';
-// FIX: Correct import path for geminiService
+import { Candidate, TagType, AIGroupAnalysisReport, CandidateStatus, ApplicationHistory, RelationshipStatus, CandidateCRM, Touchpoint, TouchpointType, NurtureCadence, NurtureContentType, Attachment, ComplianceInfo, Interview, JobRequisition, OverallRecommendation, ViewMode, PipelineStage } from '../../types';
+import { MOCK_CANDIDATES, MOCK_SCHEDULED_INTERVIEWS, MOCK_JOB_REQUISITIONS, MOCK_PIPELINE_DATA } from '../../constants';
 import { analyzeCandidateGroup, getCRMSuggestion } from '../../services/geminiService';
 import { Spinner } from '../ui/Spinner';
 
@@ -26,13 +23,20 @@ const FileTextIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} x
 const UploadIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>;
 const ShieldCheckIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>;
 const StarIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>;
-// FIX: Added the missing UsersIcon component definition to resolve the "Cannot find name" error.
 const UsersIcon = (props: React.SVGProps<SVGSVGElement>) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>;
 
 const STORAGE_KEY = 'recruiter-ai-candidates';
 const SAVED_SEARCHES_KEY = 'recruiter-ai-saved-searches';
 const INTERVIEWS_KEY = 'recruiter-ai-interviews';
 const REQUISITIONS_KEY = 'recruiter-ai-requisitions';
+const PIPELINE_KEY = 'recruiter-ai-pipeline';
+
+type PipelineData = { [jobId: number]: { [stage in PipelineStage]?: number[] } };
+
+interface CandidateProfilesTabProps {
+  currentView: ViewMode;
+  currentUser: string;
+}
 
 interface Filters {
     searchQuery: string;
@@ -64,10 +68,12 @@ const BLANK_FILTERS: Filters = { searchQuery: '', skills: '', location: '', minE
 const BLANK_CRM: CandidateCRM = { relationshipStatus: 'Cold', relationshipScore: 10, touchpointHistory: [], nurtureSettings: { autoNurture: false, cadence: 'Monthly', contentType: 'New Roles' }, communitySettings: { newsletter: false, eventInvites: false }};
 const BLANK_CANDIDATE: Omit<Candidate, 'id'> = { name: '', email: '', phone: '', skills: '', resumeSummary: '', experience: 0, location: '', availability: 'Immediate', tags: [], status: CandidateStatus.Passive, lastContactDate: '', source: '', compensation: { currentSalary: 0, salaryExpectation: 0, negotiationNotes: ''}, visaStatus: '', applicationHistory: [], crm: BLANK_CRM, attachments: [], compliance: { consentStatus: 'Not Requested' } };
 
-export const CandidateProfilesTab: React.FC = () => {
+export const CandidateProfilesTab: React.FC<CandidateProfilesTabProps> = ({ currentView, currentUser }) => {
     const [candidates, setCandidates] = useState<Candidate[]>(() => getInitialData(STORAGE_KEY, MOCK_CANDIDATES));
     const [interviews] = useState<Interview[]>(() => getInitialData(INTERVIEWS_KEY, MOCK_SCHEDULED_INTERVIEWS));
     const [requisitions] = useState<JobRequisition[]>(() => getInitialData(REQUISITIONS_KEY, MOCK_JOB_REQUISITIONS));
+    const [pipelineData] = useState<PipelineData>(() => getInitialData(PIPELINE_KEY, MOCK_PIPELINE_DATA));
+
     const [selectedCandidateId, setSelectedCandidateId] = useState<number | null>(null);
     const [isEditing, setIsEditing] = useState(false);
     const [formState, setFormState] = useState<Omit<Candidate, 'id'> | Candidate>(BLANK_CANDIDATE);
@@ -76,28 +82,47 @@ export const CandidateProfilesTab: React.FC = () => {
     const [savedSearches, setSavedSearches] = useState<SavedSearch[]>(() => getInitialData(SAVED_SEARCHES_KEY, []));
     const [activeDetailTab, setActiveDetailTab] = useState<'profile' | 'crm' | 'feedback' | 'documents'>('profile');
 
-    // Multi-select and AI summary state
     const [multiSelectIds, setMultiSelectIds] = useState<Set<number>>(new Set());
     const [targetJobTitle, setTargetJobTitle] = useState('Senior Frontend Engineer');
     const [summaryReport, setSummaryReport] = useState<AIGroupAnalysisReport | null>(null);
     const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
     const [summaryError, setSummaryError] = useState('');
 
-    // CRM state
     const [crmSuggestion, setCrmSuggestion] = useState<{suggestion: string, nextStep: string} | null>(null);
     const [isGeneratingCrmSuggestion, setIsGeneratingCrmSuggestion] = useState(false);
     const [newActivity, setNewActivity] = useState({ type: 'Note' as TouchpointType, notes: '' });
 
     useEffect(() => {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(candidates));
-    }, [candidates]);
+        if (currentView === 'recruiter') {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(candidates));
+        }
+    }, [candidates, currentView]);
 
     useEffect(() => {
-        localStorage.setItem(SAVED_SEARCHES_KEY, JSON.stringify(savedSearches));
-    }, [savedSearches]);
+        if (currentView === 'recruiter') {
+            localStorage.setItem(SAVED_SEARCHES_KEY, JSON.stringify(savedSearches));
+        }
+    }, [savedSearches, currentView]);
 
     const filteredCandidates = useMemo(() => {
-        return candidates.filter(c => {
+        let candidatesToFilter = candidates;
+
+        if (currentView === 'hiringManager') {
+            const managerReqIds = requisitions
+                .filter(r => r.hiringManager === currentUser)
+                .map(r => r.id);
+            
+            const candidateIdsInPipeline = new Set<number>();
+            managerReqIds.forEach(reqId => {
+                const jobPipeline = pipelineData[reqId] || {};
+                Object.values(jobPipeline).forEach(candidateIdArray => {
+                    candidateIdArray?.forEach(id => candidateIdsInPipeline.add(id));
+                });
+            });
+            candidatesToFilter = candidates.filter(c => candidateIdsInPipeline.has(c.id));
+        }
+
+        const filtered = candidatesToFilter.filter(c => {
             const query = filters.searchQuery.toLowerCase();
             const searchMatch = query === '' || c.name.toLowerCase().includes(query) || c.email.toLowerCase().includes(query) || c.skills.toLowerCase().includes(query) || (c.tags && c.tags.join(' ').toLowerCase().includes(query)) || c.resumeSummary.toLowerCase().includes(query);
             const skillsList = filters.skills.toLowerCase().split(',').map(s => s.trim()).filter(Boolean);
@@ -112,7 +137,14 @@ export const CandidateProfilesTab: React.FC = () => {
             
             return searchMatch && skillsMatch && locationMatch && expMatch && tagMatch && statusMatch && sourceMatch && visaMatch && crmStatusMatch;
         });
-    }, [candidates, filters]);
+        
+        // After filtering, if a selected candidate is no longer in the list, deselect them.
+        if (selectedCandidateId && !filtered.some(c => c.id === selectedCandidateId)) {
+            setSelectedCandidateId(null);
+        }
+        
+        return filtered;
+    }, [candidates, filters, currentView, currentUser, requisitions, pipelineData, selectedCandidateId]);
     
     const selectedCandidate = useMemo(() => candidates.find(c => c.id === selectedCandidateId) || null, [selectedCandidateId, candidates]);
     
@@ -124,13 +156,14 @@ export const CandidateProfilesTab: React.FC = () => {
     };
 
     const handleAddNew = () => {
+        if (currentView === 'hiringManager') return;
         setSelectedCandidateId(null);
         setFormState(BLANK_CANDIDATE);
         setIsEditing(true);
     };
     
     const handleEdit = () => {
-        if(selectedCandidate) {
+        if(selectedCandidate && currentView === 'recruiter') {
             setFormState(selectedCandidate);
             setIsEditing(true);
         }
@@ -142,14 +175,15 @@ export const CandidateProfilesTab: React.FC = () => {
     };
 
     const handleDelete = (id: number) => {
-        if (window.confirm("Are you sure?")) {
-            setCandidates(prev => prev.filter(c => c.id !== id));
-            if (selectedCandidateId === id) setSelectedCandidateId(null);
-        }
+        if (currentView === 'hiringManager' || !window.confirm("Are you sure?")) return;
+        setCandidates(prev => prev.filter(c => c.id !== id));
+        if (selectedCandidateId === id) setSelectedCandidateId(null);
     };
     
     const handleSave = (e: React.FormEvent) => {
         e.preventDefault();
+        if (currentView === 'hiringManager') return;
+
         const emailToCheck = (formState as Candidate).email.toLowerCase();
         if ('id' in formState) {
             setCandidates(prev => prev.map(c => c.id === formState.id ? formState as Candidate : c));
@@ -175,7 +209,6 @@ export const CandidateProfilesTab: React.FC = () => {
                 return { ...prev, [name]: type === 'number' ? (value ? Number(value) : undefined) : value };
             }
             
-            // Handle nested state
             const newState = JSON.parse(JSON.stringify(prev)); // Deep copy
             let current = newState;
             for (let i = 0; i < keys.length - 1; i++) {
@@ -204,6 +237,7 @@ export const CandidateProfilesTab: React.FC = () => {
     const handleDeleteSearch = (name: string) => setSavedSearches(prev => prev.filter(s => s.name !== name));
 
     const handleMultiSelectToggle = (candidateId: number) => {
+        if (currentView === 'hiringManager') return;
         setMultiSelectIds(prev => {
             const newSet = new Set(prev);
             if (newSet.has(candidateId)) newSet.delete(candidateId);
@@ -243,13 +277,13 @@ export const CandidateProfilesTab: React.FC = () => {
     };
 
     const handleLogActivity = () => {
-        if (!selectedCandidateId || !newActivity.notes) return;
+        if (!selectedCandidateId || !newActivity.notes || currentView === 'hiringManager') return;
         const newTouchpoint: Touchpoint = {
             id: `tp-${Date.now()}`,
             date: new Date().toISOString(),
             type: newActivity.type,
             notes: newActivity.notes,
-            author: 'Alex', // Hardcoded for demo
+            author: currentUser,
         };
 
         setCandidates(prev => prev.map(c => {
@@ -263,7 +297,7 @@ export const CandidateProfilesTab: React.FC = () => {
     };
 
     const handleUpdateConsent = () => {
-        if (!selectedCandidateId) return;
+        if (!selectedCandidateId || currentView === 'hiringManager') return;
         const statuses: ComplianceInfo['consentStatus'][] = ['Given', 'Pending', 'Expired', 'Not Requested'];
         
         setCandidates(prev => prev.map(c => {
@@ -358,7 +392,7 @@ export const CandidateProfilesTab: React.FC = () => {
                         <p className="text-gray-400">Consent Status: <ComplianceStatusBadge status={candidate.compliance?.consentStatus || 'Not Requested'} /></p>
                         {candidate.compliance?.consentDate && <p className="text-gray-500 text-xs mt-1">Date: {new Date(candidate.compliance.consentDate).toLocaleDateString()}</p>}
                     </div>
-                    <Button variant="secondary" className="!text-xs !py-1 !px-2" onClick={handleUpdateConsent}>Update</Button>
+                    {currentView === 'recruiter' && <Button variant="secondary" className="!text-xs !py-1 !px-2" onClick={handleUpdateConsent}>Update</Button>}
                 </div>
             </div>
             <div className="p-4 bg-gray-800 border border-gray-700 rounded-lg">
@@ -383,17 +417,18 @@ export const CandidateProfilesTab: React.FC = () => {
         const touchpointIcons: Record<TouchpointType, React.ReactNode> = { 'Email': <MessageCircleIcon className="h-4 w-4"/>, 'Call': <PhoneIcon className="h-4 w-4"/>, 'Meeting': <UsersIcon className="h-4 w-4"/>, 'Note': <EditIcon className="h-4 w-4"/> };
         return(
             <div className="overflow-y-auto flex-1 space-y-6 pr-2 -mr-2">
-                 <Card className="bg-gray-800">
-                    <h4 className="font-semibold text-gray-300 mb-2">Log Activity</h4>
-                    <div className="flex gap-2 mb-2">
-                        {/* FIX: Replaced Object.values(TouchpointType) with an array of string literals, as TouchpointType is a type alias, not an enum, and cannot be iterated over at runtime. */}
-                        {(['Email', 'Call', 'Meeting', 'Note'] as const).map(type => (
-                            <button key={type} onClick={() => setNewActivity(p => ({...p, type}))} className={`px-2 py-1 text-xs rounded-md ${newActivity.type === type ? 'bg-indigo-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>{type}</button>
-                        ))}
-                    </div>
-                    <textarea value={newActivity.notes} onChange={e => setNewActivity(p => ({...p, notes: e.target.value}))} placeholder={`Log a ${newActivity.type.toLowerCase()}...`} rows={3} className="input-field mb-2"></textarea>
-                    <Button onClick={handleLogActivity} disabled={!newActivity.notes} className="w-full">Log</Button>
-                </Card>
+                 {currentView === 'recruiter' && (
+                     <Card className="bg-gray-800">
+                        <h4 className="font-semibold text-gray-300 mb-2">Log Activity</h4>
+                        <div className="flex gap-2 mb-2">
+                            {(['Email', 'Call', 'Meeting', 'Note'] as const).map(type => (
+                                <button key={type} onClick={() => setNewActivity(p => ({...p, type}))} className={`px-2 py-1 text-xs rounded-md ${newActivity.type === type ? 'bg-indigo-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>{type}</button>
+                            ))}
+                        </div>
+                        <textarea value={newActivity.notes} onChange={e => setNewActivity(p => ({...p, notes: e.target.value}))} placeholder={`Log a ${newActivity.type.toLowerCase()}...`} rows={3} className="input-field mb-2"></textarea>
+                        <Button onClick={handleLogActivity} disabled={!newActivity.notes} className="w-full">Log</Button>
+                    </Card>
+                 )}
                 <div>
                     <h4 className="font-semibold text-gray-300 mb-2">Activity Timeline</h4>
                     <div className="space-y-4">
@@ -465,9 +500,11 @@ export const CandidateProfilesTab: React.FC = () => {
 
     const renderDocumentsDetails = (candidate: Candidate) => (
         <div className="overflow-y-auto flex-1 space-y-4 pr-2 -mr-2">
-            <Button variant="secondary" icon={<UploadIcon className="h-4 w-4" />} onClick={() => alert("Simulating document upload...")}>
-                Upload Document
-            </Button>
+            {currentView === 'recruiter' && (
+                <Button variant="secondary" icon={<UploadIcon className="h-4 w-4" />} onClick={() => alert("Simulating document upload...")}>
+                    Upload Document
+                </Button>
+            )}
             <div className="space-y-3">
                 {(candidate.attachments || []).map(doc => (
                     <a key={doc.id} href={doc.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 p-3 bg-gray-800 rounded-lg border border-gray-700 hover:bg-gray-700/50 transition-colors">
@@ -505,11 +542,11 @@ export const CandidateProfilesTab: React.FC = () => {
                             <div className="flex gap-2"><Button onClick={() => setFilters(BLANK_FILTERS)} variant="secondary" className="text-xs flex-grow">Reset</Button><Button onClick={handleSaveSearch} variant="secondary" icon={<BookmarkIcon className="h-4 w-4"/>} className="text-xs">Save</Button></div>
                         </div>
                     )}
-                    <div className="flex items-center justify-between mb-4"><span className="text-sm text-gray-400">{filteredCandidates.length} of {candidates.length}</span><Button onClick={handleAddNew} variant="secondary" className="!px-2 !py-1 text-xs" icon={<PlusIcon className="h-4 w-4" />}>Add New</Button></div>
+                    <div className="flex items-center justify-between mb-4"><span className="text-sm text-gray-400">{filteredCandidates.length} of {candidates.length}</span>{currentView === 'recruiter' && <Button onClick={handleAddNew} variant="secondary" className="!px-2 !py-1 text-xs" icon={<PlusIcon className="h-4 w-4" />}>Add New</Button>}</div>
                     <ul className="overflow-y-auto space-y-2 flex-grow">
                         {filteredCandidates.map(c => (
                              <li key={c.id}><div className={`w-full text-left p-3 rounded-md transition-colors flex items-center gap-3 ${selectedCandidateId === c.id ? 'bg-indigo-600 text-white' : 'bg-gray-800 hover:bg-gray-700/50'}`}>
-                                <input type="checkbox" checked={multiSelectIds.has(c.id)} onChange={() => handleMultiSelectToggle(c.id)} className="form-checkbox" />
+                                {currentView === 'recruiter' && <input type="checkbox" checked={multiSelectIds.has(c.id)} onChange={() => handleMultiSelectToggle(c.id)} className="form-checkbox" />}
                                 <div className="flex-grow cursor-pointer" onClick={() => handleSelectCandidate(c)}>
                                     <div className="flex items-center justify-between"><p className="font-semibold truncate">{c.name}</p>{c.crm && <RelationshipStatusBadge status={c.crm.relationshipStatus} />}</div>
                                     <p className={`text-sm truncate ${selectedCandidateId === c.id ? 'text-indigo-200' : 'text-gray-400'}`}>{c.skills}</p>
@@ -559,7 +596,7 @@ export const CandidateProfilesTab: React.FC = () => {
                                     <div className="flex items-center gap-3"><h3 className="text-xl font-bold text-white">{selectedCandidate.name}</h3><StatusBadge status={selectedCandidate.status} /></div>
                                     <p className="text-sm text-indigo-400">{selectedCandidate.email}</p>
                                 </div>
-                                <div className="flex gap-2"><Button onClick={handleEdit} variant="secondary" icon={<EditIcon className="h-4 w-4"/>}>Edit</Button><Button onClick={() => handleDelete(selectedCandidate.id)} variant="secondary" className="hover:bg-red-800/50" icon={<TrashIcon className="h-4 w-4 text-red-400"/>}>{''}</Button></div>
+                                {currentView === 'recruiter' && <div className="flex gap-2"><Button onClick={handleEdit} variant="secondary" icon={<EditIcon className="h-4 w-4"/>}>Edit</Button><Button onClick={() => handleDelete(selectedCandidate.id)} variant="secondary" className="hover:bg-red-800/50" icon={<TrashIcon className="h-4 w-4 text-red-400"/>}>{''}</Button></div>}
                             </div>
                             <div className="border-b border-gray-700 mb-4">
                                 <nav className="-mb-px flex space-x-6">
@@ -577,7 +614,7 @@ export const CandidateProfilesTab: React.FC = () => {
                     ) : null}
                 </Card>
             </div>
-            {multiSelectIds.size > 0 && (
+            {currentView === 'recruiter' && multiSelectIds.size > 0 && (
                 <div className="fixed bottom-6 left-1/2 w-full max-w-2xl z-20 animate-fade-in-up">
                     <div className="bg-gray-950 border border-indigo-500/50 rounded-lg shadow-2xl p-4 flex items-center gap-4 mx-4">
                         <span className="font-semibold text-white">{multiSelectIds.size} selected</span>
